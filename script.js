@@ -33,8 +33,9 @@ function loadProductPage() {
 
 function renderProduct(data) {
     document.getElementById('product-name').textContent = data.name;
-    // 👇 修改這裡：把名字變成超連結，可以點擊跳到 farmer.html
-    const farmerLink = `<a href="farmer.html?name=${data.farmer}" style="text-decoration:none; color:#059669;">${data.farmer} 🔗</a>`;
+  // ✅ 請改成這樣 (注意是用 innerHTML)
+    const farmerLink = `<a href="farmer.html?name=${data.farmer}" style="text-decoration:none; color:#10b981; font-weight:bold;">${data.farmer} 🔗</a>`;
+    document.getElementById('farmer-name').innerHTML = farmerLink;
     document.getElementById('farmer-name').innerHTML = farmerLink;
     
     document.getElementById('location').textContent = data.location;
@@ -103,5 +104,6 @@ function loadFarmerPage() {
         }
     });
 }
+
 
 init();
