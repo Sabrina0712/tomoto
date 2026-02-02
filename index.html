@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>農產品履歷查詢平台</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .search-container {
+            text-align: center;
+            padding: 50px 20px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border-radius: 0 0 30px 30px;
+            margin-bottom: 30px;
+        }
+        .search-box {
+            background: white;
+            padding: 10px;
+            border-radius: 50px;
+            display: flex;
+            max-width: 400px;
+            margin: 20px auto;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        input {
+            border: none;
+            flex: 1;
+            padding: 10px 15px;
+            outline: none;
+            font-size: 16px;
+        }
+        button {
+            background-color: #10b981;
+            color: white;
+            border: none;
+            padding: 10px 25px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:hover { background-color: #059669; }
+        
+        /* 推薦商品區 */
+        .featured-title { text-align: center; color: #374151; margin-bottom: 20px; }
+        .product-list {
+            display: grid;
+            gap: 15px;
+            padding: 0 20px;
+        }
+        .product-card {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .product-card:hover { transform: translateY(-3px); }
+        .thumb { width: 60px; height: 60px; border-radius: 8px; object-fit: cover; margin-right: 15px; }
+    </style>
+</head>
+<body style="background-color: #f3f4f6;">
+
+    <div class="container" style="background: transparent; box-shadow: none;">
+        
+        <div class="search-container">
+            <h1 style="margin:0; color:white;">🔍 查詢安心農產</h1>
+            <p style="opacity: 0.9;">輸入批次編號 (如: P001)</p>
+            
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="請輸入產品編號...">
+                <button onclick="handleSearch()">搜尋</button>
+            </div>
+        </div>
+
+        <h3 class="featured-title">🔥 最新上架農產</h3>
+        <div class="product-list">
+            <div class="product-card" onclick="location.href='product.html?id=P001'">
+                <img src="https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=150" class="thumb">
+                <div>
+                    <h4 style="margin:0;">極品玉女小番茄</h4>
+                    <span style="font-size:12px; color:#6b7280;">批號：P001 | 陳大農</span>
+                </div>
+            </div>
+
+            <div class="product-card" onclick="location.href='product.html?id=P002'">
+                <img src="https://images.unsplash.com/photo-1553279768-865429fa0078?w=150" class="thumb">
+                <div>
+                    <h4 style="margin:0;">冠軍愛文芒果</h4>
+                    <span style="font-size:12px; color:#6b7280;">批號：P002 | 林阿水</span>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // 處理搜尋邏輯
+        function handleSearch() {
+            const input = document.getElementById('searchInput').value.trim(); // 取得輸入值並去除空白
+            
+            if (input) {
+                // 這裡就是關鍵：把用戶輸入的字，變成網址參數傳給 product.html
+                window.location.href = `product.html?id=${input}`;
+            } else {
+                alert("請輸入批次編號！");
+            }
+        }
+
+        // 讓使用者按 Enter 也能搜尋
+        document.getElementById('searchInput').addEventListener("keypress", function(event) {
+            if (event.key === "Enter") {
+                handleSearch();
+            }
+        });
+    </script>
+</body>
+</html>
