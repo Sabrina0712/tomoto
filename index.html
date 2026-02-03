@@ -100,24 +100,22 @@
 
     <script>
         // 處理搜尋邏輯
-        function handleSearch() {
-            const input = document.getElementById('searchInput').value.trim(); // 取得輸入值並去除空白
-            
-            if (input) {
-                // 這裡就是關鍵：把用戶輸入的字，變成網址參數傳給 product.html
-                window.location.href = `product.html?id=${input}`;
-            } else {
-                alert("請輸入產品名稱！");
-            }
-        }
+      function handleSearch() {
+    // 取得選單選中的值
+    const selectBox = document.getElementById('searchInput');
+    const selectedValue = selectBox.value; 
 
-        // 讓使用者按 Enter 也能搜尋
-        document.getElementById('searchInput').addEventListener("keypress", function(event) {
-            if (event.key === "Enter") {
-                handleSearch();
-            }
-        });
+    if (selectedValue) {
+        // 如果有選到東西，就跳轉
+        window.location.href = `product.html?id=${selectedValue}`;
+    } else {
+        alert("請選擇一個產品！");
+    }
+}
+
+// 注意：如果是用選單，就不需要 Enter 鍵監聽了，因為是用滑鼠選的。
     </script>
 </body>
 
 </html>
+
