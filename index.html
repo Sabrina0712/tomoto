@@ -69,10 +69,10 @@
         
         <div class="search-container">
             <h1 style="margin:0; color:white;">🔍 荷葉安心農產履歷平台</h1>
-            <p style="opacity: 0.9;">輸入批次編號 (如: P001)</p>
+            <p style="opacity: 0.9;">輸入產品名稱 (如:番茄)</p>
             
             <div class="search-box">
-                <input type="text" id="searchInput" placeholder="請輸入產品編號...">
+                <input type="text" id="searchInput" placeholder="請輸入產品名稱...">
                 <button onclick="handleSearch()">搜尋</button>
             </div>
         </div>
@@ -107,7 +107,7 @@
                 // 這裡就是關鍵：把用戶輸入的字，變成網址參數傳給 product.html
                 window.location.href = `product.html?id=${input}`;
             } else {
-                alert("請輸入批次編號！");
+                alert("請輸入產品名稱！");
             }
         }
 
@@ -119,4 +119,5 @@
         });
     </script>
 </body>
+
 </html>
