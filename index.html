@@ -98,37 +98,39 @@
 
     </div>
 
-    <script>
+   <script>
     function handleSearch() {
         const input = document.getElementById('searchInput').value.trim();
 
-        // ★★★ 更新後的產品對照表 ★★★
+        // ★★★ 更新後的超級對照表 ★★★
         const productMap = {
-            // --- P001: 極品玉女小番茄 ---
-            "極品玉女小番茄": "P001",  // 客人搜名稱 -> 找 P001
-            "P001": "P001",           // 客人搜編號 -> 找 P001
-            
-            // --- P002: 冠軍愛文芒果 ---
-            "冠軍愛文芒果": "P002",    // 客人搜名稱 -> 找 P002
-            "P002": "P002"            // 客人搜編號 -> 找 P002
+            // --- P001 相關 (不管打什麼都導向 P001) ---
+            "極品玉女小番茄": "P001",  // 全名
+            "P001": "P001",           // 編號
+            "番茄": "P001",           // <--- 新增這裡：只打「番茄」也可以！
+            "小番茄": "P001",         // <--- 多送你一個：打「小番茄」也可以！
+
+            // --- P002 相關 ---
+            "冠軍愛文芒果": "P002",    // 全名
+            "P002": "P002",           // 編號
+            "芒果": "P002"            // <--- 新增這裡：只打「芒果」也可以！
         };
 
         if (input) {
-            // 檢查是否在名單內
+            // 系統會去對照表找，只要有符合上面任何一個，就會通過
             if (productMap[input]) {
                 const realId = productMap[input];
-                // 跳轉並帶上 ID
                 window.location.href = `product.html?id=${realId}`;
             } else {
-                alert("找不到這個產品喔！請確認名稱或編號 (例如：P001 或 極品玉女小番茄)");
+                alert("找不到喔！試試看輸入「番茄」或「P001」？");
                 document.getElementById('searchInput').value = ""; 
             }
         } else {
-            alert("請輸入產品名稱或編號！");
+            alert("請輸入內容！");
         }
     }
-    
-    // (保留 Enter 鍵監聽的程式碼...)
+
+    // (原本的 Enter 鍵功能保留不動...)
     document.getElementById('searchInput').addEventListener("keypress", function(event) {
         if (event.key === "Enter") {
             handleSearch();
@@ -138,6 +140,7 @@
 </body>
 
 </html>
+
 
 
 
