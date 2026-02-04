@@ -12,11 +12,12 @@
             padding: 0;
         }
 
-        /* 1. 頂部大區塊 (綠色背景) */
+        /* 1. 頂部大區塊 (綠色背景) - 已變矮 */
         .hero-section {
-            background-color: #00c6a9; /* 依照截圖吸取的綠色 */
-            background: linear-gradient(135deg, #00c6a9 0%, #00b09b 100%); /* 加一點微漸層更有質感 */
-            padding: 80px 20px 100px 20px; /* 上下留白 */
+            background-color: #00c6a9;
+            background: linear-gradient(135deg, #00c6a9 0%, #00b09b 100%);
+            /* ▼ 修改：減少上下留白，讓綠色區塊變矮 */
+            padding: 40px 20px 50px 20px; 
             text-align: center;
             color: white;
             border-bottom-left-radius: 30px;
@@ -24,9 +25,10 @@
             box-shadow: 0 4px 15px rgba(0, 198, 169, 0.2);
         }
 
-        /* 標題樣式 */
+        /* 標題樣式 - 已變小 */
         .main-title {
-            font-size: 2.2em;
+            /* ▼ 修改：字體從 2.2em 改小為 1.6em */
+            font-size: 1.6em; 
             font-weight: bold;
             margin: 0;
             display: flex;
@@ -37,47 +39,44 @@
         }
 
         .sub-title {
-            margin-top: 15px;
-            font-size: 1.1em;
+            margin-top: 10px;
+            font-size: 1em; /* 也稍微改小一點 */
             opacity: 0.9;
             font-weight: normal;
             letter-spacing: 1px;
         }
 
-        /* 2. 搜尋框 (白色長條膠囊) */
+        /* 2. 搜尋框 */
         .search-wrapper {
             background: white;
-            max-width: 650px; /* 控制最大寬度 */
-            margin: 30px auto 0 auto;
-            border-radius: 50px; /* 圓弧造型 */
-            padding: 8px 8px 8px 25px; /* 內部留白 */
+            max-width: 650px;
+            margin: 20px auto 0 auto; /* 上方間距稍微縮小 */
+            border-radius: 50px;
+            padding: 5px 5px 5px 20px; /* 稍微縮小內距 */
             display: flex;
             align-items: center;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1); /* 讓它浮起來的陰影 */
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
         }
 
         .search-input {
             border: none;
-            flex: 1; /* 佔滿剩餘空間 */
-            font-size: 1.1em;
+            flex: 1;
+            font-size: 1em;
             outline: none;
             color: #555;
             padding: 5px;
             background: transparent;
         }
 
-        /* 輸入框提示文字顏色 */
-        .search-input::placeholder {
-            color: #999;
-        }
+        .search-input::placeholder { color: #999; }
 
         .search-btn {
             background-color: #00bfa5;
             color: white;
             border: none;
             border-radius: 40px;
-            padding: 12px 35px;
-            font-size: 1em;
+            padding: 10px 30px; /* 按鈕也稍微縮小 */
+            font-size: 0.95em;
             font-weight: bold;
             cursor: pointer;
             transition: all 0.2s;
@@ -89,10 +88,11 @@
             transform: translateY(-1px);
         }
 
-        /* 3. 下方產品列表 (選填，保留方便測試) */
+        /* 3. 下方產品列表 - 已拉開距離 */
         .content-container {
             max-width: 800px;
-            margin: -40px auto 50px auto; /* 往上推，蓋住一點綠色背景 */
+            /* ▼ 修改：原本是 -40px (重疊)，現在改成正 30px (分開) */
+            margin: 30px auto 50px auto; 
             padding: 0 20px;
         }
 
@@ -111,7 +111,7 @@
             margin-bottom: 15px;
             display: flex;
             align-items: center;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
             text-decoration: none;
             color: inherit;
             transition: transform 0.2s;
@@ -166,18 +166,15 @@
                 return;
             }
 
-            // ⭐ 關鍵字轉換邏輯 (中文轉ID)
             if (input === "香蕉" || input === "banana") {
                 input = "P005";
             } else if (input === "番茄") {
                 input = "P001";
             }
 
-            // 跳轉到產品頁
             window.location.href = `product.html?id=${input}`;
         }
 
-        // 支援 Enter 鍵搜尋
         document.getElementById("keyword").addEventListener("keypress", function(event) {
             if (event.key === "Enter") {
                 goSearch();
