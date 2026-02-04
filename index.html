@@ -5,116 +5,179 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>荷葉安心農產履歷平台</title>
     <style>
-        body { font-family: 'Microsoft JhengHei', sans-serif; background: #f4f6f8; margin: 0; }
-        
-        /* 綠色頂部 */
-        .header { background: #00bfa5; padding: 60px 20px; text-align: center; color: white; }
-        .header h1 { margin: 0 0 10px 0; font-size: 2.5em; }
-        .header p { opacity: 0.9; font-size: 1.1em; }
+        body {
+            font-family: 'Microsoft JhengHei', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: #f4f6f8;
+            margin: 0;
+            padding: 0;
+        }
 
-        /* 搜尋框容器 */
-        .search-box { 
-            background: white; 
-            max-width: 600px; 
-            margin: 20px auto; 
-            padding: 10px; 
-            border-radius: 30px; 
-            display: flex; 
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1); 
+        /* 1. 頂部大區塊 (綠色背景) */
+        .hero-section {
+            background-color: #00c6a9; /* 依照截圖吸取的綠色 */
+            background: linear-gradient(135deg, #00c6a9 0%, #00b09b 100%); /* 加一點微漸層更有質感 */
+            padding: 80px 20px 100px 20px; /* 上下留白 */
+            text-align: center;
+            color: white;
+            border-bottom-left-radius: 30px;
+            border-bottom-right-radius: 30px;
+            box-shadow: 0 4px 15px rgba(0, 198, 169, 0.2);
         }
-        .search-input { 
-            flex: 1; 
-            border: none; 
-            padding: 15px; 
-            font-size: 1.1em; 
-            outline: none; 
-            border-radius: 30px 0 0 30px;
-        }
-        .search-btn { 
-            background: #00bfa5; 
-            color: white; 
-            border: none; 
-            padding: 10px 30px; 
-            border-radius: 25px; 
-            cursor: pointer; 
-            font-size: 1.1em; 
-            margin: 5px;
-            transition: 0.3s;
-        }
-        .search-btn:hover { background: #009688; }
 
-        /* 產品列表 */
-        .section-title { text-align: center; color: #333; margin-top: 40px; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        
-        .product-link { text-decoration: none; color: inherit; }
-        .card { 
-            background: white; 
-            border-radius: 12px; 
-            padding: 15px; 
-            margin-bottom: 20px; 
-            display: flex; 
-            align-items: center; 
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        /* 標題樣式 */
+        .main-title {
+            font-size: 2.2em;
+            font-weight: bold;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .sub-title {
+            margin-top: 15px;
+            font-size: 1.1em;
+            opacity: 0.9;
+            font-weight: normal;
+            letter-spacing: 1px;
+        }
+
+        /* 2. 搜尋框 (白色長條膠囊) */
+        .search-wrapper {
+            background: white;
+            max-width: 650px; /* 控制最大寬度 */
+            margin: 30px auto 0 auto;
+            border-radius: 50px; /* 圓弧造型 */
+            padding: 8px 8px 8px 25px; /* 內部留白 */
+            display: flex;
+            align-items: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1); /* 讓它浮起來的陰影 */
+        }
+
+        .search-input {
+            border: none;
+            flex: 1; /* 佔滿剩餘空間 */
+            font-size: 1.1em;
+            outline: none;
+            color: #555;
+            padding: 5px;
+            background: transparent;
+        }
+
+        /* 輸入框提示文字顏色 */
+        .search-input::placeholder {
+            color: #999;
+        }
+
+        .search-btn {
+            background-color: #00bfa5;
+            color: white;
+            border: none;
+            border-radius: 40px;
+            padding: 12px 35px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .search-btn:hover {
+            background-color: #009688;
+            transform: translateY(-1px);
+        }
+
+        /* 3. 下方產品列表 (選填，保留方便測試) */
+        .content-container {
+            max-width: 800px;
+            margin: -40px auto 50px auto; /* 往上推，蓋住一點綠色背景 */
+            padding: 0 20px;
+        }
+
+        .section-label {
+            text-align: center;
+            color: #555;
+            font-weight: bold;
+            margin-bottom: 20px;
+            font-size: 1.2em;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 15px 20px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            text-decoration: none;
+            color: inherit;
             transition: transform 0.2s;
         }
-        .card:hover { transform: translateY(-3px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
-        .card-img { width: 80px; height: 80px; border-radius: 10px; object-fit: cover; margin-right: 20px; background: #eee; }
-        .card-info h3 { margin: 0 0 5px 0; color: #333; }
-        .card-info p { margin: 0; color: #777; font-size: 0.9em; }
+        .card:hover { transform: translateY(-3px); }
+        .card img { width: 70px; height: 70px; border-radius: 10px; object-fit: cover; margin-right: 20px; background: #eee; }
+        .card h3 { margin: 0 0 5px 0; font-size: 1.1em; color: #333; }
+        .card p { margin: 0; color: #777; font-size: 0.9em; }
 
-        /* 新增的香蕉標籤 */
-        .new-badge { background: #ffeb3b; color: #f57f17; font-size: 0.8em; padding: 2px 8px; border-radius: 4px; margin-left: 10px; }
     </style>
 </head>
 <body>
 
-    <div class="header">
-        <h1>🔍 荷葉安心農產履歷平台</h1>
-        <p>輸入產品批號或關鍵字查詢</p>
+    <div class="hero-section">
+        <h1 class="main-title">
+            🔍 荷葉安心農產履歷平台
+        </h1>
+        <div class="sub-title">輸入產品批號或關鍵字查詢</div>
 
-        <div class="search-box">
+        <div class="search-wrapper">
             <input type="text" id="keyword" class="search-input" placeholder="請輸入產品批號 (例如: P005)...">
             <button onclick="goSearch()" class="search-btn">搜尋</button>
         </div>
     </div>
 
-    <h3 class="section-title">🔥 最新上架農產</h3>
+    <div class="content-container">
+        <div class="section-label">🔥 最新上架農產</div>
 
-    <div class="container">
-        <a href="product.html?id=P005" class="product-link">
-            <div class="card">
-                <img src="https://i.epochtimes.com/assets/uploads/2022/01/id13488691-Fotolia_81632784_Subscription_L.jpg" class="card-img">
-                <div class="card-info">
-                    <h3>香蕉 (Banana) <span class="new-badge">NEW</span></h3>
-                    <p>批號：P005 | 生產者：何大大</p>
-                </div>
+        <a href="product.html?id=P005" class="card">
+            <img src="https://i.imgur.com/PZc0j2u.jpeg" alt="香蕉">
+            <div>
+                <h3>香蕉 (Banana)</h3>
+                <p>批號：P005 | 生產者：何大大</p>
             </div>
         </a>
 
+        <a href="product.html?id=P001" class="card">
+            <img src="https://via.placeholder.com/80/ff6b6b/fff?text=Tomato" alt="番茄">
+            <div>
+                <h3>極品玉女小番茄</h3>
+                <p>批號：P001 | 陳大農</p>
+            </div>
+        </a>
     </div>
 
     <script>
-        // 搜尋功能邏輯
         function goSearch() {
             let input = document.getElementById('keyword').value.trim();
             
             if (!input) {
-                alert("請輸入內容！");
+                alert("請輸入搜尋內容！");
                 return;
             }
 
-            // ⭐ 貼心小功能：如果使用者打中文「香蕉」，自動轉成 P005
-            // 這樣你打中文也能查得到
-            if (input === "香蕉") {
+            // ⭐ 關鍵字轉換邏輯 (中文轉ID)
+            if (input === "香蕉" || input === "banana") {
                 input = "P005";
+            } else if (input === "番茄") {
+                input = "P001";
             }
 
-            // 跳轉到產品頁面
+            // 跳轉到產品頁
             window.location.href = `product.html?id=${input}`;
         }
 
-        // 讓使用者按 Enter 也能搜尋
+        // 支援 Enter 鍵搜尋
         document.getElementById("keyword").addEventListener("keypress", function(event) {
             if (event.key === "Enter") {
                 goSearch();
@@ -124,4 +187,3 @@
 
 </body>
 </html>
-
