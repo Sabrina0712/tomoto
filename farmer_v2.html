@@ -2,8 +2,8 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>👨‍🌾 農夫生產管理系統 (Web3版)</title>
-    <script src="https://cdn.jsdelivr.net/npm/web3@1.5.2/dist/web3.min.js"></script>
+    <title>👨‍🌾 農夫生產管理 (Web3 穩定版)</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.7.4/web3.min.js"></script>
     <style>
         body { font-family: '微軟正黑體', sans-serif; background: #e8f5e9; padding: 20px; }
         .container { max-width: 900px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
@@ -31,7 +31,7 @@
 </head>
 <body>
 <div class="container">
-    <h1>👨‍🌾 農夫生產管理 (區塊鏈藥檢鎖定)</h1>
+    <h1>👨‍🌾 農夫生產管理 (含藥檢鎖定)</h1>
     <div style="text-align:center; margin-bottom:20px;">
         <span id="wallet-status" style="background:#ddd; padding:5px 10px; border-radius:20px;">🔴 錢包未連線</span>
     </div>
@@ -42,7 +42,7 @@
         <div><label>產品名稱</label><input type="text" id="p-name" placeholder="例如: 玉女番茄"></div>
         <div><label>產地</label><input type="text" id="p-location" value="嘉義縣太保市"></div>
         <div><label>生產者</label><input type="text" id="p-farmer" value="陳大農"></div>
-        <div style="grid-column: span 2;"><label>照片連結</label><input type="text" id="p-photo" placeholder="https://imgur.com/..."></div>
+        <div style="grid-column: span 2;"><label>照片連結</label><input type="text" id="p-photo" placeholder="請貼上 https://... 結尾是jpg/png的短網址"></div>
     </div>
     <button onclick="registerProduct()">✅ 註冊產品到區塊鏈</button>
 
@@ -65,7 +65,6 @@
     <div class="form-group">
         <label>作業日期</label>
         <input type="date" id="rec-date">
-        <small id="date-hint" style="color:#666;">一般作業可補登；施藥建議當日。</small>
     </div>
 
     <div id="pesticide-inputs" class="pesticide-box">
@@ -98,10 +97,11 @@
 </div>
 
 <script>
-    // ★★★ 請替換成你新部署的 V4 合約地址 ★★★
-    const contractAddress = "0xdA79a8FDFf7ff6AD187c679Df7d6519b45b6C52f";
-    
-    // 對應 V4 合約的 ABI
+    // ▼▼▼ 請務必將此處換成你 Remix 上最新的合約地址 ▼▼▼
+    const contractAddress = "0xdA79a8FDFf7ff6AD187c679Df7d6519b45b6C52f"; 
+    // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+
+    // V4 合約 ABI (含 PHI 功能)
     const contractABI = [
         {"inputs":[{"internalType":"string","name":"_id","type":"string"},{"internalType":"string","name":"_name","type":"string"},{"internalType":"string","name":"_location","type":"string"},{"internalType":"string","name":"_farmer","type":"string"},{"internalType":"string","name":"_photoUrl","type":"string"}],"name":"registerProduct","outputs":[],"stateMutability":"nonpayable","type":"function"},
         {"inputs":[{"internalType":"string","name":"_id","type":"string"},{"internalType":"string","name":"_date","type":"string"},{"internalType":"string","name":"_action","type":"string"},{"internalType":"string","name":"_note","type":"string"},{"internalType":"uint256","name":"_phi","type":"uint256"}],"name":"addHistory","outputs":[],"stateMutability":"nonpayable","type":"function"},
@@ -111,31 +111,46 @@
     let web3;
     let contract;
 
-    // 1. 初始化與連線
-    window.addEventListener('load', async () => {
-        if (window.ethereum) {
-            web3 = new Web3(window.ethereum);
-            try {
-                await window.ethereum.request({ method: 'eth_requestAccounts' });
-                contract = new web3.eth.Contract(contractABI, contractAddress);
-                
-                const accounts = await web3.eth.getAccounts();
-                document.getElementById('wallet-status').innerText = "🟢 已連線: " + accounts[0].substring(0,6) + "...";
-                document.getElementById('wallet-status').style.background = "#c8e6c9";
-                
-                // 預設日期為今天
-                document.getElementById("rec-date").valueAsDate = new Date();
-
-            } catch (error) {
-                console.error(error);
-                alert("請允許 MetaMask 連線！");
+    // 1. 核心功能：檢查連線 (如果沒連線，會自動連)
+    async function checkConnection() {
+        // 如果 web3 還沒設定，或是合約還沒載入
+        if (!web3 || !contract) {
+            if (window.ethereum) {
+                try {
+                    web3 = new Web3(window.ethereum);
+                    // 請求用戶授權
+                    await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    
+                    // 初始化合約
+                    contract = new web3.eth.Contract(contractABI, contractAddress);
+                    
+                    // 更新 UI 顯示
+                    const accounts = await web3.eth.getAccounts();
+                    document.getElementById('wallet-status').innerText = "🟢 已連線: " + accounts[0].substring(0,6) + "...";
+                    document.getElementById('wallet-status').style.background = "#c8e6c9";
+                    return true;
+                } catch (error) {
+                    console.error("User denied account access or error occurred", error);
+                    alert("連線失敗：" + error.message);
+                    return false;
+                }
+            } else {
+                alert("找不到 MetaMask！請先安裝小狐狸錢包擴充功能。");
+                return false;
             }
-        } else {
-            alert("請安裝 MetaMask 錢包！");
+        }
+        return true; // 已經連線過了
+    }
+
+    // 頁面載入時嘗試連線一次 (不做強制，失敗就算了)
+    window.addEventListener('load', async () => {
+        document.getElementById("rec-date").valueAsDate = new Date(); // 預設今天
+        if(window.ethereum) {
+            await checkConnection();
         }
     });
 
-    // 2. 切換施藥/一般模式的 UI 顯示
+    // 2. 切換作業種類 UI
     function handleProcessChange() {
         const type = document.getElementById("rec-process").value;
         const pestBox = document.getElementById("pesticide-inputs");
@@ -144,15 +159,18 @@
         if (type === "施藥") {
             pestBox.style.display = "block";
             normalBox.style.display = "none";
-            document.getElementById("rec-date").valueAsDate = new Date(); // 施藥建議帶入今天
+            document.getElementById("rec-date").valueAsDate = new Date();
         } else {
             pestBox.style.display = "none";
             normalBox.style.display = "block";
         }
     }
 
-    // 3. 註冊產品
+    // 3. 註冊產品 (含連線檢查)
     async function registerProduct() {
+        const isConnected = await checkConnection();
+        if (!isConnected) return; // 如果連線失敗就停止
+
         const id = document.getElementById("p-id").value;
         const name = document.getElementById("p-name").value;
         const location = document.getElementById("p-location").value;
@@ -163,16 +181,22 @@
 
         try {
             const accounts = await web3.eth.getAccounts();
+            // 發送交易
             await contract.methods.registerProduct(id, name, location, farmer, photo)
                 .send({ from: accounts[0] });
+            
             alert("✅ 產品註冊成功！");
         } catch (err) {
+            console.error(err);
             alert("交易失敗：" + err.message);
         }
     }
 
-    // 4. 新增紀錄 (核心邏輯)
+    // 4. 新增紀錄 (含連線檢查)
     async function addRecord() {
+        const isConnected = await checkConnection();
+        if (!isConnected) return;
+
         const id = document.getElementById("rec-id").value;
         const type = document.getElementById("rec-process").value;
         const date = document.getElementById("rec-date").value;
@@ -190,59 +214,47 @@
             if(!pName || !pPhi) return alert("施藥資料請填寫完整");
             
             actionStr = `施藥: ${pName} (${pDose})`;
-            phi = parseInt(pPhi); // 這是要傳給合約計算鎖定時間的關鍵數字
+            phi = parseInt(pPhi); 
         } else {
             const detail = document.getElementById("rec-detail").value;
             actionStr = `${type}: ${detail}`;
             phi = 0;
         }
 
-        // 如果是採收，先前端檢查一下有沒有被鎖定 (雖然後端合約可以不擋，但前端提示比較友善)
-        if (type === "採收") {
-            try {
-                const product = await contract.methods.getProduct(id).call();
-                const unlockTime = product[4]; // 第5個回傳值是時間戳
-                const now = Math.floor(Date.now() / 1000);
-                
-                if (unlockTime > now) {
-                    const waitDays = ((unlockTime - now) / 86400).toFixed(1);
-                    const confirmHarvest = confirm(`⚠️ 警告！目前處於「藥檢鎖定安全期」。\n還有 ${waitDays} 天才解鎖。\n\n您確定要強制採收嗎？(這將違反安全規範)`);
-                    if (!confirmHarvest) return;
-                }
-            } catch(e) { console.log("檢查鎖定失敗", e); }
-        }
-
         try {
             const accounts = await web3.eth.getAccounts();
-            // 呼叫合約: 傳入 PHI 參數
             await contract.methods.addHistory(id, date, actionStr, noteRaw, phi)
                 .send({ from: accounts[0] });
             
-            alert("✅ 紀錄已上鏈！" + (phi > 0 ? `\n🔒 產品已鎖定 ${phi} 天` : ""));
-            // 清空輸入
+            alert("✅ 紀錄已上鏈！");
+            
+            // 清空欄位
             document.getElementById("rec-detail").value = "";
             document.getElementById("rec-note").value = "";
         } catch (err) {
+            console.error(err);
             alert("交易失敗：" + err.message);
         }
     }
 
     // 5. 查詢狀態 (Lock Check)
     async function checkStatus() {
+        const isConnected = await checkConnection();
+        if (!isConnected) return;
+
         const id = document.getElementById("query-id").value;
         try {
             const p = await contract.methods.getProduct(id).call();
             const resultBox = document.getElementById("status-result");
             resultBox.style.display = "block";
 
-            // p[0]:Name, p[4]:EarliestHarvestDate (timestamp)
+            // p[4] 是 EarliestHarvestDate (timestamp)
             const now = Math.floor(Date.now() / 1000);
             const unlockTime = p[4];
             let statusHtml = "";
 
             if (unlockTime > now) {
-                const waitSeconds = unlockTime - now;
-                const waitDays = (waitSeconds / 86400).toFixed(1);
+                const waitDays = ((unlockTime - now) / 86400).toFixed(1);
                 statusHtml = `
                     <div style="color:red; font-weight:bold; font-size:1.2em; border: 2px solid red; padding:10px; border-radius:5px;">
                         ⛔ 藥檢鎖定中 (Safety Lock Active)<br>
@@ -264,7 +276,8 @@
             `;
 
         } catch (e) {
-            alert("查無資料，請確認 ID 正確");
+            console.error(e);
+            alert("查無資料 (或連線錯誤)");
         }
     }
 </script>
