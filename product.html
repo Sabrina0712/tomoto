@@ -3,165 +3,102 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>農產品安心履歷 (區塊鏈版)</title>
-    <link rel="stylesheet" href="style.css">
-    
+    <title>產品安心履歷 (消費者視角)</title>
     <script src="https://cdn.jsdelivr.net/npm/web3@1.5.2/dist/web3.min.js"></script>
+    <style>
+        /* 🎨 消費者介面樣式 - 乾淨、綠色系 */
+        body { font-family: 'Helvetica Neue', Arial, sans-serif; background: #f4f7f6; margin: 0; padding: 20px; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 0; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); overflow: hidden; }
+        
+        /* 頂部圖片區 */
+        header { position: relative; height: 250px; background-color: #eee; overflow: hidden; }
+        .hero-img { width: 100%; height: 100%; object-fit: cover; }
+        .status-badge { 
+            position: absolute; bottom: 0; left: 0; right: 0; 
+            padding: 10px 20px; color: white; font-weight: bold; 
+            text-align: center; backdrop-filter: blur(5px);
+        }
+        
+        .content { padding: 25px; }
+        h1 { margin: 0 0 10px 0; color: #2e7d32; font-size: 1.8em; }
+        .farmer-info { color: #666; font-size: 0.9em; display: flex; align-items: center; margin-bottom: 20px; }
+        .farmer-icon { background: #e8f5e9; padding: 5px; border-radius: 50%; margin-right: 8px; }
+
+        /* 詳細資料卡 */
+        .details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 30px; background: #fafafa; padding: 15px; border-radius: 10px; }
+        .detail-item span { display: block; }
+        .label { font-size: 0.8em; color: #888; margin-bottom: 3px; }
+        .value { font-weight: 600; color: #333; }
+
+        /* 時間軸履歷 */
+        .timeline { border-left: 3px solid #e0e0e0; margin-left: 10px; padding-left: 20px; }
+        .timeline-item { position: relative; margin-bottom: 25px; }
+        .timeline-item::before {
+            content: ''; position: absolute; left: -26px; top: 5px;
+            width: 10px; height: 10px; border-radius: 50%; background: #4CAF50; border: 2px solid white; box-shadow: 0 0 0 2px #4CAF50;
+        }
+        /* 特殊狀態顏色 */
+        .timeline-item.warning::before { background: #f44336; box-shadow: 0 0 0 2px #f44336; } /* 施藥紅燈 */
+        
+        .t-date { font-size: 0.85em; color: #888; font-weight: bold; }
+        .t-action { font-size: 1.1em; margin: 3px 0; font-weight: bold; }
+        .t-note { font-size: 0.9em; color: #555; background: #eee; padding: 5px 10px; border-radius: 5px; display: inline-block; margin-top: 5px;}
+        .t-lock { color: #d32f2f; font-size: 0.85em; margin-top: 2px; font-weight: bold; }
+
+        /* 安全狀態燈號 */
+        .safe { background: rgba(76, 175, 80, 0.9); }
+        .danger { background: rgba(244, 67, 54, 0.9); }
+    </style>
 </head>
 <body>
 
     <div class="container">
         <header>
-            <img id="product-img" src="" alt="讀取中..." class="hero-img" style="display:none; max-width: 100%; height: auto;">
-            <div class="status-badge">產銷履歷驗證 (區塊鏈存證)</div>
+            <img id="product-img" src="" alt="產品圖片" class="hero-img" style="display:none;">
+            <div id="safety-badge" class="status-badge safe">讀取中...</div>
         </header>
 
-        <main>
-            <section class="info-card">
-                <h1 id="product-name">正在讀取區塊鏈資料...</h1>
-                <p class="farmer">👨‍🌾 生產者：<span id="farmer-name">--</span></p>
-                
-                <div class="details-grid">
-                    <div class="detail-item">
-                        <span class="label">產地</span>
-                        <span class="value" id="location">--</span>
-                    </div>
-                    <div class="detail-item">
-                        <span class="label">批次編號</span>
-                        <span class="value" id="batch-id">--</span>
-                    </div>
-                </div>
-            </section>
+        <div class="content">
+            <h1 id="product-name">--</h1>
+            <div class="farmer-info">
+                <span class="farmer-icon">👨‍🌾</span> 
+                生產者：<span id="farmer-name">--</span>
+            </div>
+            
+            <div class="details-grid">
+                <div class="detail-item"><span class="label">產地</span><span class="value" id="location">--</span></div>
+                <div class="detail-item"><span class="label">產品 ID</span><span class="value" id="product-id">--</span></div>
+            </div>
 
-            <section class="timeline-section">
-                <h3>🌱 生產紀錄 (不可篡改)</h3>
-                <div class="timeline" id="timeline-box">
-                    <p>載入中...</p>
+            <h3 style="border-bottom: 2px solid #eee; padding-bottom: 10px;">🌱 生產與施藥紀錄</h3>
+            <div class="timeline" id="timeline-box">
                 </div>
-            </section>
-        </main>
-
+        </div>
     </div>
 
     <script>
-        // ▼▼▼ 請在這裡貼上你的新合約地址 ▼▼▼
-        const contractAddress = "0xB138FA386A0d043fd55Ea450Bc8D90e22D0d6C38"; 
-        // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+        // ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
+        // 關鍵步驟：請把 farmer.html 用的那個「新合約地址」貼在下面
+        const contractAddress = "0x你的合約地址貼在這裡"; 
+        // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
-        // 合約的說明書 (ABI) - 包含照片功能
+        // V4 合約的說明書 (ABI)
         const contractABI = [
-            {
-                "inputs": [{"internalType": "string","name": "_id","type": "string"}],
-                "name": "getProduct",
-                "outputs": [
-                    {"internalType": "string","name": "","type": "string"}, // 0: Name
-                    {"internalType": "string","name": "","type": "string"}, // 1: Location
-                    {"internalType": "string","name": "","type": "string"}, // 2: Farmer
-                    {"internalType": "string","name": "","type": "string"}  // 3: PhotoUrl
-                ],
-                "stateMutability": "view",
-                "type": "function"
-            },
-            {
-                "inputs": [{"internalType": "string","name": "_id","type": "string"}],
-                "name": "getHistory",
-                "outputs": [
-                    {"internalType": "string[]","name": "","type": "string[]"}, // Dates
-                    {"internalType": "string[]","name": "","type": "string[]"}  // Actions
-                ],
-                "stateMutability": "view",
-                "type": "function"
-            }
+            {"inputs":[{"internalType":"string","name":"_id","type":"string"}],"name":"getProduct","outputs":[{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+            {"inputs":[{"internalType":"string","name":"_id","type":"string"}],"name":"getHistory","outputs":[{"components":[{"internalType":"string","name":"date","type":"string"},{"internalType":"string","name":"action","type":"string"},{"internalType":"string","name":"note","type":"string"},{"internalType":"uint256","name":"phi","type":"uint256"}],"internalType":"struct AgriChain.Record[]","name":"","type":"tuple[]"}],"stateMutability":"view","type":"function"}
         ];
 
         let web3;
         let contract;
 
         window.addEventListener('load', async () => {
-            // 1. 抓取網址上的 ID (例如 ?id=P001)
+            // 1. 自動抓取網址參數 (例如 product.html?id=P001)
             const urlParams = new URLSearchParams(window.location.search);
             const productId = urlParams.get('id');
 
-            // 顯示目前查詢的 ID
-            if(productId) {
-                document.getElementById('batch-id').innerText = productId;
-            } else {
-                document.getElementById('product-name').innerText = "❌ 未指定產品編號";
+            if (!productId) {
+                document.getElementById('product-name').innerText = "❌ 請在網址後方加上 ?id=P001";
                 return;
             }
 
-            // 2. 連接區塊鏈
-            if (window.ethereum) {
-                web3 = new Web3(window.ethereum);
-                try {
-                    contract = new web3.eth.Contract(contractABI, contractAddress);
-                    console.log("區塊鏈連線成功，開始抓取資料...");
-                    await loadProductData(productId);
-                } catch (error) {
-                    console.error("連線錯誤:", error);
-                }
-            } else {
-                alert("請安裝 MetaMask 錢包才能讀取區塊鏈資料！");
-            }
-        });
-
-        async function loadProductData(id) {
-            try {
-                // --- A. 讀取基本資料 ---
-                const product = await contract.methods.getProduct(id).call();
-
-                // 檢查是否有資料 (名字是否為空)
-                if (!product[0]) {
-                    document.getElementById('product-name').innerText = "查無此產品資料";
-                    document.getElementById('timeline-box').innerHTML = "<p>區塊鏈上找不到編號 <b>" + id + "</b> 的紀錄。</p>";
-                    return;
-                }
-
-                // 填入資料
-                document.getElementById('product-name').innerText = product[0]; // 名稱
-                document.getElementById('location').innerText = product[1];     // 產地
-                document.getElementById('farmer-name').innerText = product[2];  // 農夫
-
-                // 處理照片
-                const imgElement = document.getElementById('product-img');
-                if (product[3] && product[3].startsWith('http')) {
-                    imgElement.src = product[3];
-                    imgElement.style.display = 'block'; // 有照片就顯示
-                } else {
-                    imgElement.style.display = 'none';  // 沒照片就隱藏
-                }
-
-                // --- B. 讀取履歷 ---
-                const history = await contract.methods.getHistory(id).call();
-                const dates = history[0];
-                const actions = history[1];
-                
-                const timelineBox = document.getElementById('timeline-box');
-                timelineBox.innerHTML = ""; // 清空載入中文字
-
-                if (dates.length === 0) {
-                    timelineBox.innerHTML = "<p>⚠️ 目前尚無生產紀錄</p>";
-                } else {
-                    // 建立履歷列表 (使用原本的 timeline 樣式，這裡用簡單的 div 模擬)
-                    let html = '<ul style="list-style: none; padding: 0;">';
-                    for (let i = 0; i < dates.length; i++) {
-                        html += `
-                            <li style="margin-bottom: 15px; border-left: 3px solid #4CAF50; padding-left: 10px;">
-                                <strong style="color: #2e7d32;">${dates[i]}</strong>
-                                <div style="color: #555;">${actions[i]}</div>
-                            </li>
-                        `;
-                    }
-                    html += '</ul>';
-                    timelineBox.innerHTML = html;
-                }
-
-            } catch (err) {
-                console.error("讀取失敗:", err);
-                alert("讀取資料失敗，請確認合約地址是否正確！");
-            }
-        }
-    </script>
-</body>
-</html>
-
+            //
