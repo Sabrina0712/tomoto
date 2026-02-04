@@ -1,147 +1,145 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="zh-TW">
 <head>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>農產品履歷查詢平台</title>
-    <link rel="stylesheet" href="style.css">
+    <title>荷葉安心農產履歷平台</title>
     <style>
-        .search-container {
-            text-align: center;
-            padding: 50px 20px;
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            color: white;
-            border-radius: 0 0 30px 30px;
-            margin-bottom: 30px;
-        }
-        .search-box {
-            background: white;
-            padding: 10px;
-            border-radius: 50px;
-            display: flex;
-            max-width: 400px;
-            margin: 20px auto;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        }
-        input {
-            border: none;
-            flex: 1;
-            padding: 10px 15px;
-            outline: none;
-            font-size: 16px;
-        }
-        button {
-            background-color: #10b981;
-            color: white;
-            border: none;
-            padding: 10px 25px;
-            border-radius: 30px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-        button:hover { background-color: #059669; }
+        body { font-family: 'Microsoft JhengHei', sans-serif; background: #f4f6f8; margin: 0; }
         
-        /* 推薦商品區 */
-        .featured-title { text-align: center; color: #374151; margin-bottom: 20px; }
-        .product-list {
-            display: grid;
-            gap: 15px;
-            padding: 0 20px;
+        /* 綠色頂部 */
+        .header { background: #00bfa5; padding: 60px 20px; text-align: center; color: white; }
+        .header h1 { margin: 0 0 10px 0; font-size: 2.5em; }
+        .header p { opacity: 0.9; font-size: 1.1em; }
+
+        /* 搜尋框容器 */
+        .search-box { 
+            background: white; 
+            max-width: 600px; 
+            margin: 20px auto; 
+            padding: 10px; 
+            border-radius: 30px; 
+            display: flex; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1); 
         }
-        .product-card {
-            background: white;
-            padding: 15px;
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-            cursor: pointer;
+        .search-input { 
+            flex: 1; 
+            border: none; 
+            padding: 15px; 
+            font-size: 1.1em; 
+            outline: none; 
+            border-radius: 30px 0 0 30px;
+        }
+        .search-btn { 
+            background: #00bfa5; 
+            color: white; 
+            border: none; 
+            padding: 10px 30px; 
+            border-radius: 25px; 
+            cursor: pointer; 
+            font-size: 1.1em; 
+            margin: 5px;
+            transition: 0.3s;
+        }
+        .search-btn:hover { background: #009688; }
+
+        /* 產品列表 */
+        .section-title { text-align: center; color: #333; margin-top: 40px; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        
+        .product-link { text-decoration: none; color: inherit; }
+        .card { 
+            background: white; 
+            border-radius: 12px; 
+            padding: 15px; 
+            margin-bottom: 20px; 
+            display: flex; 
+            align-items: center; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
             transition: transform 0.2s;
         }
-        .product-card:hover { transform: translateY(-3px); }
-        .thumb { width: 60px; height: 60px; border-radius: 8px; object-fit: cover; margin-right: 15px; }
+        .card:hover { transform: translateY(-3px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .card-img { width: 80px; height: 80px; border-radius: 10px; object-fit: cover; margin-right: 20px; background: #eee; }
+        .card-info h3 { margin: 0 0 5px 0; color: #333; }
+        .card-info p { margin: 0; color: #777; font-size: 0.9em; }
+
+        /* 新增的香蕉標籤 */
+        .new-badge { background: #ffeb3b; color: #f57f17; font-size: 0.8em; padding: 2px 8px; border-radius: 4px; margin-left: 10px; }
     </style>
 </head>
-<body style="background-color: #f3f4f6;">
+<body>
 
-    <div class="container" style="background: transparent; box-shadow: none;">
-        
-        <div class="search-container">
-            <h1 style="margin:0; color:white;">🔍 荷葉安心農產履歷平台</h1>
-            <p style="opacity: 0.9;">輸入產品名稱 (如:番茄)或批號</p>
-            
-            <div class="search-box">
-                <input type="text" id="searchInput" placeholder="請輸入產品名稱或批號...">
-                <button onclick="handleSearch()">搜尋</button>
-            </div>
+    <div class="header">
+        <h1>🔍 荷葉安心農產履歷平台</h1>
+        <p>輸入產品 ID 或關鍵字查詢區塊鏈紀錄</p>
+
+        <div class="search-box">
+            <input type="text" id="keyword" class="search-input" placeholder="請輸入產品批號 (例如: P005)...">
+            <button onclick="goSearch()" class="search-btn">搜尋</button>
         </div>
-
-        <h3 class="featured-title">🔥 最新上架農產</h3>
-        <div class="product-list">
-            <div class="product-card" onclick="location.href='product.html?id=P001'">
-                <img src="https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=150" class="thumb">
-                <div>
-                    <h4 style="margin:0;">極品玉女小番茄</h4>
-                    <span style="font-size:12px; color:#6b7280;">批號：P001 | 陳大農</span>
-                </div>
-            </div>
-
-            <div class="product-card" onclick="location.href='product.html?id=P002'">
-                <img src="https://images.unsplash.com/photo-1553279768-865429fa0078?w=150" class="thumb">
-                <div>
-                    <h4 style="margin:0;">冠軍愛文芒果</h4>
-                    <span style="font-size:12px; color:#6b7280;">批號：P002 | 林阿水</span>
-                </div>
-            </div>
-        </div>
-
     </div>
 
-   <script>
-    function handleSearch() {
-        const input = document.getElementById('searchInput').value.trim();
+    <h3 class="section-title">🔥 最新上架農產</h3>
 
-        // ★★★ 更新後的超級對照表 ★★★
-        const productMap = {
-            // --- P001 相關 (不管打什麼都導向 P001) ---
-            "極品玉女小番茄": "P001",  // 全名
-            "P001": "P001",           // 編號
-            "番茄": "P001",           // <--- 新增這裡：只打「番茄」也可以！
-            "小番茄": "P001",         // <--- 多送你一個：打「小番茄」也可以！
+    <div class="container">
+        <a href="product.html?id=P005" class="product-link">
+            <div class="card">
+                <img src="https://i.imgur.com/PZc0j2u.jpeg" class="card-img">
+                <div class="card-info">
+                    <h3>香蕉 (Banana) <span class="new-badge">NEW</span></h3>
+                    <p>批號：P005 | 生產者：何大大</p>
+                </div>
+            </div>
+        </a>
 
-            // --- P002 相關 ---
-            "冠軍愛文芒果": "P002",    // 全名
-            "P002": "P002",           // 編號
-            "芒果": "P002"            // <--- 新增這裡：只打「芒果」也可以！
-        };
+        <a href="product.html?id=P001" class="product-link">
+            <div class="card">
+                <img src="https://via.placeholder.com/80/ff6b6b/fff?text=Tomato" class="card-img">
+                <div class="card-info">
+                    <h3>極品玉女小番茄</h3>
+                    <p>批號：P001 | 陳大農</p>
+                </div>
+            </div>
+        </a>
 
-        if (input) {
-            // 系統會去對照表找，只要有符合上面任何一個，就會通過
-            if (productMap[input]) {
-                const realId = productMap[input];
-                window.location.href = `product.html?id=${realId}`;
-            } else {
-                alert("找不到喔！試試看輸入「番茄」或「P001」？");
-                document.getElementById('searchInput').value = ""; 
+        <a href="product.html?id=P002" class="product-link">
+            <div class="card">
+                <img src="https://via.placeholder.com/80/fbc02d/fff?text=Mango" class="card-img">
+                <div class="card-info">
+                    <h3>冠軍愛文芒果</h3>
+                    <p>批號：P002 | 林阿水</p>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <script>
+        // 搜尋功能邏輯
+        function goSearch() {
+            let input = document.getElementById('keyword').value.trim();
+            
+            if (!input) {
+                alert("請輸入內容！");
+                return;
             }
-        } else {
-            alert("請輸入內容！");
-        }
-    }
 
-    // (原本的 Enter 鍵功能保留不動...)
-    document.getElementById('searchInput').addEventListener("keypress", function(event) {
-        if (event.key === "Enter") {
-            handleSearch();
+            // ⭐ 貼心小功能：如果使用者打中文「香蕉」，自動轉成 P005
+            // 這樣你打中文也能查得到
+            if (input === "香蕉") {
+                input = "P005";
+            }
+
+            // 跳轉到產品頁面
+            window.location.href = `product.html?id=${input}`;
         }
-    });
-</script>
+
+        // 讓使用者按 Enter 也能搜尋
+        document.getElementById("keyword").addEventListener("keypress", function(event) {
+            if (event.key === "Enter") {
+                goSearch();
+            }
+        });
+    </script>
+
 </body>
-
 </html>
-
-
-
-
-
