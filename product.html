@@ -3,12 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🍌 產銷履歷查詢 (消費者端)</title>
+    <title>產品履歷詳情</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.7.4/web3.min.js"></script>
     <style>
         body { font-family: 'Microsoft JhengHei', sans-serif; background: #fdfbf7; margin: 0; padding: 20px; }
         .container { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
         
+        /* 頂部返回按鈕 */
+        .back-btn { display: inline-block; margin-bottom: 15px; color: #666; text-decoration: none; font-size: 0.9em; }
+
         /* 產品卡片 */
         .product-card { text-align: center; margin-bottom: 20px; }
         .product-img { width: 100%; height: 300px; object-fit: cover; border-radius: 10px; background-color: #eee; }
@@ -42,7 +45,7 @@
         .h-action { font-weight: bold; font-size: 1.1em; color: #333; }
         .h-note { color: #666; font-size: 0.95em; margin-top: 3px; }
 
-        /* 施藥特殊標示 */
+        /* 特殊標示 */
         .is-pest { border-left-color: #ef5350; }
         .is-pest::before { background: #ef5350; }
         .is-pest .h-action { color: #c62828; }
@@ -54,6 +57,8 @@
 <body>
 
 <div class="container">
+    <a href="index.html" class="back-btn">← 返回搜尋</a>
+
     <div id="loading" class="loading">
         <div style="font-size: 2em;">☁️</div>
         <p>正在從區塊鏈讀取資料...</p>
@@ -88,10 +93,7 @@
 </div>
 
 <script>
-    // ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
     const contractAddress = "0xdA79a8FDFf7ff6AD187c679Df7d6519b45b6C52f"; 
-    // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
-
     const contractABI = [
         {"inputs":[{"internalType":"string","name":"_id","type":"string"}],"name":"getProduct","outputs":[{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
         {"inputs":[{"internalType":"string","name":"_id","type":"string"}],"name":"getHistory","outputs":[{"components":[{"internalType":"string","name":"date","type":"string"},{"internalType":"string","name":"action","type":"string"},{"internalType":"string","name":"note","type":"string"},{"internalType":"uint256","name":"timestamp","type":"uint256"}],"internalType":"struct AgProduct.Record[]","name":"","type":"tuple[]"}],"stateMutability":"view","type":"function"}
@@ -102,7 +104,7 @@
         const productId = urlParams.get('id');
 
         if (!productId) {
-            showError("❌ 網址錯誤：請在網址後方加上 ?id=P005 (你的產品ID)");
+            showError("❌ 網址錯誤：請從首頁搜尋進入");
             return;
         }
 
@@ -116,34 +118,20 @@
         const contract = new web3.eth.Contract(contractABI, contractAddress);
 
         try {
-            console.log("正在查詢 ID:", productId);
-            
-            // 讀取產品基本資料
             const p = await contract.methods.getProduct(productId).call();
             
-            // 🔄【修正】資料對應順序
-            // 根據截圖分析：
-            // p[0] 是 名稱 (例如: 香蕉)
-            // p[1] 是 地點 (例如: 台中市南區)
-            // p[2] 是 生產者 (例如: 何大大)
-            // p[3] 是 照片網址 (例如: https://...)
-            // p[4] 是 鎖定時間 (Time)
-
-            // ID 直接使用網址上的參數，不從合約拿
+            // 修正順序：名稱, 地點, 生產者, 照片
             document.getElementById('d-id').innerText = productId; 
-            
-            document.getElementById('d-name').innerText = p[0];     // 名稱
-            document.getElementById('d-location').innerText = p[1]; // 地點
-            document.getElementById('d-farmer').innerText = p[2];   // 生產者
+            document.getElementById('d-name').innerText = p[0];     
+            document.getElementById('d-location').innerText = p[1]; 
+            document.getElementById('d-farmer').innerText = p[2];   
 
-            // 處理照片 (p[3])
             if(p[3] && p[3].startsWith('http')) {
                 document.getElementById('d-photo').src = p[3];
             } else {
                 document.getElementById('d-photo').src = "https://i.imgur.com/PZc0j2u.jpeg";
             }
 
-            // 處理藥檢鎖定狀態 (p[4] 是時間)
             const unlockTime = parseInt(p[4]); 
             const now = Math.floor(Date.now() / 1000);
             const statusBox = document.getElementById('d-status');
@@ -151,13 +139,12 @@
             if (unlockTime > now) {
                 const waitDays = ((unlockTime - now) / 86400).toFixed(1);
                 statusBox.className = "status-bar locked";
-                statusBox.innerHTML = `⛔ 此產品處於藥檢管制期<br><small>還有 ${waitDays} 天才可安全採收</small>`;
+                statusBox.innerHTML = `⛔ 藥檢管制中 (尚需 ${waitDays} 天)`;
             } else {
                 statusBox.className = "status-bar safe";
-                statusBox.innerHTML = `✅ 經區塊鏈驗證：安全可食用 (Safe)`;
+                statusBox.innerHTML = `✅ 經區塊鏈驗證：安全可食用`;
             }
 
-            // 讀取履歷列表
             const history = await contract.methods.getHistory(productId).call();
             const list = document.getElementById('history-box');
             
@@ -182,7 +169,7 @@
 
         } catch (err) {
             console.error(err);
-            showError("讀取失敗：查無此產品 ID，或是合約格式不符。<br>詳細錯誤: " + err.message);
+            showError("讀取失敗：查無此產品 ID");
         }
     });
 
