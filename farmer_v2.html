@@ -2,174 +2,182 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>👨‍🌾 農夫生產管理 (Web3 穩定版)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>👨‍🌾 農夫生產管理 (含藥檢鎖定)</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.7.4/web3.min.js"></script>
     <style>
-        body { font-family: '微軟正黑體', sans-serif; background: #e8f5e9; padding: 20px; }
-        .container { max-width: 900px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        h1 { text-align: center; color: #2e7d32; }
-        h3 { border-left: 5px solid #43a047; padding-left: 10px; color: #2e7d32; margin-top: 30px; }
+        body { font-family: 'Microsoft JhengHei', sans-serif; background: #f1f8e9; padding: 20px; color: #333; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         
-        .form-group { margin-bottom: 15px; }
-        label { display: block; font-weight: bold; margin-bottom: 5px; color: #555; }
-        input, select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
+        h1 { text-align: center; color: #2e7d32; margin-bottom: 10px; }
+        .wallet-bar { text-align: center; margin-bottom: 30px; }
+        .status-badge { background: #ffebee; color: #c62828; padding: 8px 15px; border-radius: 20px; font-weight: bold; display: inline-block; }
+        .status-badge.connected { background: #e8f5e9; color: #2e7d32; }
+
+        h3 { border-left: 5px solid #4caf50; padding-left: 12px; color: #388e3c; margin-top: 40px; }
         
-        button { width: 100%; padding: 12px; background: #2e7d32; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 1.1em; margin-top: 10px; }
-        button:hover { background: #1b5e20; }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .full-width { grid-column: span 2; }
         
-        /* 施藥專用區塊樣式 */
+        label { display: block; margin: 8px 0 5px; font-weight: bold; color: #555; }
+        input, select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
+        input:focus { border-color: #4caf50; outline: none; }
+
+        button { width: 100%; padding: 12px; margin-top: 15px; border: none; border-radius: 6px; font-size: 16px; cursor: pointer; transition: 0.3s; }
+        .btn-green { background: #2e7d32; color: white; }
+        .btn-green:hover { background: #1b5e20; }
+        .btn-blue { background: #1565c0; color: white; }
+        .btn-blue:hover { background: #0d47a1; }
+        .btn-orange { background: #f57c00; color: white; }
+
+        /* 施藥警示區塊 */
         .pesticide-box { 
             display: none; 
             background: #ffebee; 
             border: 2px solid #ef5350; 
-            padding: 15px; 
+            padding: 20px; 
             border-radius: 8px; 
-            margin-top: 10px; 
+            margin-top: 15px;
         }
-        .status-box { background: #f1f8e9; padding: 15px; border-radius: 5px; margin-top: 20px; display: none; }
+        .warning-text { color: #d32f2f; font-size: 0.9em; margin-top: 5px; }
+
+        .result-box { margin-top: 20px; padding: 15px; background: #fafafa; border-radius: 8px; display: none; border: 1px solid #ddd; }
     </style>
 </head>
 <body>
+
 <div class="container">
     <h1>👨‍🌾 農夫生產管理 (含藥檢鎖定)</h1>
-    <div style="text-align:center; margin-bottom:20px;">
-        <span id="wallet-status" style="background:#ddd; padding:5px 10px; border-radius:20px;">🔴 錢包未連線</span>
+    
+    <div class="wallet-bar">
+        <span id="wallet-status" class="status-badge">🔴 錢包未連線</span>
+        <button onclick="checkConnection()" style="width: auto; padding: 5px 15px; margin-left: 10px; font-size: 0.9em;">🔗 手動連線</button>
     </div>
 
     <h3>1. 註冊新產品</h3>
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-        <div><label>產品 ID (例如: P001)</label><input type="text" id="p-id" placeholder="自行設定ID"></div>
+    <div class="form-grid">
+        <div><label>產品 ID</label><input type="text" id="p-id" placeholder="例如: P005"></div>
         <div><label>產品名稱</label><input type="text" id="p-name" placeholder="例如: 玉女番茄"></div>
         <div><label>產地</label><input type="text" id="p-location" value="嘉義縣太保市"></div>
         <div><label>生產者</label><input type="text" id="p-farmer" value="陳大農"></div>
-        <div style="grid-column: span 2;"><label>照片連結</label><input type="text" id="p-photo" placeholder="請貼上 https://... 結尾是jpg/png的短網址"></div>
+        <div class="full-width">
+            <label>照片連結</label>
+            <input type="text" id="p-photo" placeholder="請貼上 https://... 結尾是jpg/png的短網址">
+        </div>
     </div>
-    <button onclick="registerProduct()">✅ 註冊產品到區塊鏈</button>
+    <button class="btn-green" onclick="registerProduct()">✅ 註冊產品到區塊鏈</button>
 
-    <hr>
+    <hr style="margin: 30px 0; border: 0; border-top: 1px solid #eee;">
 
     <h3>2. 新增生產 / 施藥紀錄</h3>
-    <div class="form-group"><label>產品 ID</label><input type="text" id="rec-id" placeholder="輸入 ID (例如: P001)"></div>
-
-    <div class="form-group">
-        <label>作業種類</label>
-        <select id="rec-process" onchange="handleProcessChange()">
-            <option value="耕地管理">耕地管理</option>
-            <option value="種植">種植</option>
-            <option value="施肥">施肥</option>
-            <option value="施藥">☠️ 施藥 (Pesticide Application)</option>
-            <option value="採收">採收</option>
-        </select>
+    <div class="form-grid">
+        <div class="full-width"><label>產品 ID</label><input type="text" id="rec-id" placeholder="輸入要操作的產品 ID"></div>
+        
+        <div>
+            <label>作業種類</label>
+            <select id="rec-process" onchange="handleProcessChange()">
+                <option value="耕地管理">耕地管理</option>
+                <option value="種植">種植</option>
+                <option value="施肥">施肥</option>
+                <option value="施藥">☠️ 施藥 (Pesticide Application)</option>
+                <option value="採收">採收</option>
+            </select>
+        </div>
+        <div><label>日期</label><input type="date" id="rec-date"></div>
     </div>
 
-    <div class="form-group">
-        <label>作業日期</label>
-        <input type="date" id="rec-date">
+    <div id="normal-inputs" style="margin-top: 15px;">
+        <label>詳細內容</label>
+        <input type="text" id="rec-detail" placeholder="例如: 使用有機肥">
     </div>
 
     <div id="pesticide-inputs" class="pesticide-box">
-        <h4 style="margin-top:0; color:#c62828;">⚠️ 施藥管制資料 (將啟動智能合約鎖定)</h4>
-        <div class="form-group"><label>農藥名稱</label><input type="text" id="pest-name" placeholder="例如: 納乃得"></div>
-        <div class="form-group"><label>稀釋倍數/劑量</label><input type="text" id="pest-dose" placeholder="例如: 1000倍"></div>
-        <div class="form-group">
-            <label>安全採收期 (PHI) - 天數</label>
-            <input type="number" id="pest-phi" placeholder="例如: 7 (代表7天內禁止採收)">
-            <small style="color:#d32f2f;">注意：輸入後區塊鏈將自動鎖定，${PHI} 天內無法進行採收登錄。</small>
+        <h4 style="margin:0 0 10px 0; color:#c62828;">⚠️ 施藥管制資料 (將啟動智能合約鎖定)</h4>
+        <div class="form-grid">
+            <div><label>農藥名稱</label><input type="text" id="pest-name" placeholder="例如: 納乃得"></div>
+            <div><label>稀釋倍數</label><input type="text" id="pest-dose" placeholder="例如: 1000倍"></div>
+            <div class="full-width">
+                <label>安全採收期 (PHI天數)</label>
+                <input type="number" id="pest-phi" placeholder="輸入 7 代表鎖定7天">
+                <div class="warning-text">注意：輸入後，區塊鏈將自動鎖定該產品，期限內無法顯示為安全。</div>
+            </div>
         </div>
     </div>
 
-    <div class="form-group" id="normal-inputs">
-        <label>詳細內容</label><input type="text" id="rec-detail" placeholder="例如: 使用有機肥">
+    <div style="margin-top: 15px;">
+        <label>備註</label>
+        <input type="text" id="rec-note" placeholder="其他補充說明...">
     </div>
-    
-    <div class="form-group"><label>備註</label><input type="text" id="rec-note"></div>
 
-    <button onclick="addRecord()" style="background: #1565c0;">➕ 新增紀錄 (MetaMask)</button>
+    <button class="btn-blue" onclick="addRecord()">➕ 新增紀錄 (MetaMask)</button>
 
-    <hr>
+    <hr style="margin: 30px 0; border: 0; border-top: 1px solid #eee;">
 
     <h3>3. 狀態查詢 (藥檢鎖定檢查)</h3>
     <div style="display:flex; gap:10px;">
-        <input type="text" id="query-id" placeholder="輸入 ID 查詢">
-        <button onclick="checkStatus()" style="margin:0; width:150px; background:#f57c00;">🔍 查詢狀態</button>
+        <input type="text" id="query-id" placeholder="輸入 ID 查詢狀態">
+        <button class="btn-orange" style="width: 150px; margin:0;" onclick="checkStatus()">🔍 查詢</button>
     </div>
-    <div id="status-result" class="status-box"></div>
+    <div id="status-result" class="result-box"></div>
 </div>
 
 <script>
-    // ▼▼▼ 請務必將此處換成你 Remix 上最新的合約地址 ▼▼▼
+    // ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
+    // 關鍵：請在這裡貼上你 Remix 最新的合約地址！
     const contractAddress = "0xdA79a8FDFf7ff6AD187c679Df7d6519b45b6C52f"; 
-    // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+    // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
-    // V4 合約 ABI (含 PHI 功能)
+    // V4 合約 ABI (包含 PHI 功能)
     const contractABI = [
         {"inputs":[{"internalType":"string","name":"_id","type":"string"},{"internalType":"string","name":"_name","type":"string"},{"internalType":"string","name":"_location","type":"string"},{"internalType":"string","name":"_farmer","type":"string"},{"internalType":"string","name":"_photoUrl","type":"string"}],"name":"registerProduct","outputs":[],"stateMutability":"nonpayable","type":"function"},
         {"inputs":[{"internalType":"string","name":"_id","type":"string"},{"internalType":"string","name":"_date","type":"string"},{"internalType":"string","name":"_action","type":"string"},{"internalType":"string","name":"_note","type":"string"},{"internalType":"uint256","name":"_phi","type":"uint256"}],"name":"addHistory","outputs":[],"stateMutability":"nonpayable","type":"function"},
         {"inputs":[{"internalType":"string","name":"_id","type":"string"}],"name":"getProduct","outputs":[{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"}
     ];
 
+    // 全域變數宣告
     let web3;
     let contract;
 
-    // 1. 核心功能：檢查連線 (如果沒連線，會自動連)
+    // 1. 初始化與連線檢查
     async function checkConnection() {
-        // 如果 web3 還沒設定，或是合約還沒載入
-        if (!web3 || !contract) {
-            if (window.ethereum) {
-                try {
+        // 如果已經有 web3 物件，檢查是否真的連上
+        if (window.ethereum) {
+            try {
+                // 建立 Web3 實例
+                if (!web3) {
                     web3 = new Web3(window.ethereum);
-                    // 請求用戶授權
-                    await window.ethereum.request({ method: 'eth_requestAccounts' });
-                    
-                    // 初始化合約
-                    contract = new web3.eth.Contract(contractABI, contractAddress);
-                    
-                    // 更新 UI 顯示
-                    const accounts = await web3.eth.getAccounts();
-                    document.getElementById('wallet-status').innerText = "🟢 已連線: " + accounts[0].substring(0,6) + "...";
-                    document.getElementById('wallet-status').style.background = "#c8e6c9";
-                    return true;
-                } catch (error) {
-                    console.error("User denied account access or error occurred", error);
-                    alert("連線失敗：" + error.message);
-                    return false;
                 }
-            } else {
-                alert("找不到 MetaMask！請先安裝小狐狸錢包擴充功能。");
+                
+                // 請求用戶授權連線
+                await window.ethereum.request({ method: 'eth_requestAccounts' });
+                
+                // 取得帳號
+                const accounts = await web3.eth.getAccounts();
+                
+                // 設定合約
+                contract = new web3.eth.Contract(contractABI, contractAddress);
+                
+                // 更新介面狀態
+                const statusBadge = document.getElementById('wallet-status');
+                statusBadge.innerText = "🟢 已連線: " + accounts[0].substring(0,6) + "...";
+                statusBadge.className = "status-badge connected";
+                
+                return true;
+            } catch (error) {
+                console.error(error);
+                alert("連線失敗或是您拒絕了連線請求。");
                 return false;
             }
-        }
-        return true; // 已經連線過了
-    }
-
-    // 頁面載入時嘗試連線一次 (不做強制，失敗就算了)
-    window.addEventListener('load', async () => {
-        document.getElementById("rec-date").valueAsDate = new Date(); // 預設今天
-        if(window.ethereum) {
-            await checkConnection();
-        }
-    });
-
-    // 2. 切換作業種類 UI
-    function handleProcessChange() {
-        const type = document.getElementById("rec-process").value;
-        const pestBox = document.getElementById("pesticide-inputs");
-        const normalBox = document.getElementById("normal-inputs");
-        
-        if (type === "施藥") {
-            pestBox.style.display = "block";
-            normalBox.style.display = "none";
-            document.getElementById("rec-date").valueAsDate = new Date();
         } else {
-            pestBox.style.display = "none";
-            normalBox.style.display = "block";
+            alert("⚠️ 找不到 MetaMask！請先安裝小狐狸錢包擴充功能。");
+            return false;
         }
     }
 
-    // 3. 註冊產品 (含連線檢查)
+    // 2. 註冊產品
     async function registerProduct() {
-        const isConnected = await checkConnection();
-        if (!isConnected) return; // 如果連線失敗就停止
+        // 先檢查連線，如果沒連線會自動跳出 MetaMask
+        if (!await checkConnection()) return;
 
         const id = document.getElementById("p-id").value;
         const name = document.getElementById("p-name").value;
@@ -185,23 +193,24 @@
             await contract.methods.registerProduct(id, name, location, farmer, photo)
                 .send({ from: accounts[0] });
             
-            alert("✅ 產品註冊成功！");
+            alert("✅ 產品註冊成功！資料已寫入區塊鏈。");
         } catch (err) {
             console.error(err);
             alert("交易失敗：" + err.message);
         }
     }
 
-    // 4. 新增紀錄 (含連線檢查)
+    // 3. 新增紀錄 (含施藥邏輯)
     async function addRecord() {
-        const isConnected = await checkConnection();
-        if (!isConnected) return;
+        if (!await checkConnection()) return;
 
         const id = document.getElementById("rec-id").value;
         const type = document.getElementById("rec-process").value;
         const date = document.getElementById("rec-date").value;
         const noteRaw = document.getElementById("rec-note").value;
         
+        if(!id || !date) return alert("請輸入產品 ID 與日期");
+
         let actionStr = "";
         let phi = 0;
 
@@ -211,7 +220,7 @@
             const pDose = document.getElementById("pest-dose").value;
             const pPhi = document.getElementById("pest-phi").value;
             
-            if(!pName || !pPhi) return alert("施藥資料請填寫完整");
+            if(!pName || !pPhi) return alert("施藥資料請填寫完整 (包含 PHI 天數)");
             
             actionStr = `施藥: ${pName} (${pDose})`;
             phi = parseInt(pPhi); 
@@ -223,63 +232,81 @@
 
         try {
             const accounts = await web3.eth.getAccounts();
+            console.log("正在寫入紀錄...", id, date, actionStr, noteRaw, phi);
+            
             await contract.methods.addHistory(id, date, actionStr, noteRaw, phi)
                 .send({ from: accounts[0] });
             
-            alert("✅ 紀錄已上鏈！");
+            alert("✅ 紀錄新增成功！");
             
-            // 清空欄位
+            // 清空輸入框
             document.getElementById("rec-detail").value = "";
             document.getElementById("rec-note").value = "";
+            document.getElementById("pest-name").value = "";
+            document.getElementById("pest-phi").value = "";
         } catch (err) {
             console.error(err);
             alert("交易失敗：" + err.message);
         }
     }
 
-    // 5. 查詢狀態 (Lock Check)
+    // 4. 查詢狀態 (測試用)
     async function checkStatus() {
-        const isConnected = await checkConnection();
-        if (!isConnected) return;
+        if (!await checkConnection()) return;
 
         const id = document.getElementById("query-id").value;
+        if(!id) return alert("請輸入 ID");
+
         try {
             const p = await contract.methods.getProduct(id).call();
             const resultBox = document.getElementById("status-result");
             resultBox.style.display = "block";
 
-            // p[4] 是 EarliestHarvestDate (timestamp)
+            // p[4] 是 EarliestHarvestDate (時間戳記)
             const now = Math.floor(Date.now() / 1000);
-            const unlockTime = p[4];
+            const unlockTime = parseInt(p[4]);
+            
             let statusHtml = "";
-
             if (unlockTime > now) {
                 const waitDays = ((unlockTime - now) / 86400).toFixed(1);
-                statusHtml = `
-                    <div style="color:red; font-weight:bold; font-size:1.2em; border: 2px solid red; padding:10px; border-radius:5px;">
-                        ⛔ 藥檢鎖定中 (Safety Lock Active)<br>
-                        <span style="font-size:0.8em; color:black">還有 ${waitDays} 天才可安全採收</span>
-                    </div>`;
+                statusHtml = `<div style="color:red; font-weight:bold;">⛔ 藥檢管制中 (還有 ${waitDays} 天)</div>`;
             } else {
-                statusHtml = `
-                    <div style="color:green; font-weight:bold; font-size:1.2em; border: 2px solid green; padding:10px; border-radius:5px;">
-                        ✅ 安全採收期 (Safe to Harvest)<br>
-                        <span style="font-size:0.8em; color:black">目前無藥物殘留風險</span>
-                    </div>`;
+                statusHtml = `<div style="color:green; font-weight:bold;">✅ 安全可採收</div>`;
             }
 
             resultBox.innerHTML = `
-                <p><b>產品名稱:</b> ${p[0]}</p>
-                <p><b>產地:</b> ${p[1]}</p>
+                <p><b>產品:</b> ${p[0]} (${p[1]})</p>
+                <p><b>生產者:</b> ${p[2]}</p>
                 <hr>
                 ${statusHtml}
             `;
 
         } catch (e) {
             console.error(e);
-            alert("查無資料 (或連線錯誤)");
+            alert("查無此 ID 或讀取錯誤");
         }
     }
+
+    // 介面切換邏輯
+    function handleProcessChange() {
+        const type = document.getElementById("rec-process").value;
+        const pestBox = document.getElementById("pesticide-inputs");
+        const normalBox = document.getElementById("normal-inputs");
+        
+        if (type === "施藥") {
+            pestBox.style.display = "block";
+            normalBox.style.display = "none";
+        } else {
+            pestBox.style.display = "none";
+            normalBox.style.display = "block";
+        }
+    }
+
+    // 頁面載入時自動設定日期為今天
+    window.onload = function() {
+        document.getElementById('rec-date').valueAsDate = new Date();
+    }
 </script>
+
 </body>
 </html>
