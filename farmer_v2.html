@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>👨‍🌾 農夫生產管理系統 (Web3版)</title>
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.5.2/dist/web3.min.js"></script>
+    <style>
+        body { font-family: '微軟正黑體', sans-serif; background: #e8f5e9; padding: 20px; }
+        .container { max-width: 900px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #2e7d32; }
+        h3 { border-left: 5px solid #43a047; padding-left: 10px; color: #2e7d32; margin-top: 30px; }
+        
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; color: #555; }
+        input, select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
+        
+        button { width: 100%; padding: 12px; background: #2e7d32; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 1.1em; margin-top: 10px; }
+        button:hover { background: #1b5e20; }
+        
+        /* 施藥專用區塊樣式 */
+        .pesticide-box { 
+            display: none; 
+            background: #ffebee; 
+            border: 2px solid #ef5350; 
+            padding: 15px; 
+            border-radius: 8px; 
+            margin-top: 10px; 
+        }
+        .status-box { background: #f1f8e9; padding: 15px; border-radius: 5px; margin-top: 20px; display: none; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>👨‍🌾 農夫生產管理 (區塊鏈藥檢鎖定)</h1>
+    <div style="text-align:center; margin-bottom:20px;">
+        <span id="wallet-status" style="background:#ddd; padding:5px 10px; border-radius:20px;">🔴 錢包未連線</span>
+    </div>
+
+    <h3>1. 註冊新產品</h3>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+        <div><label>產品 ID (例如: P001)</label><input type="text" id="p-id" placeholder="自行設定ID"></div>
+        <div><label>產品名稱</label><input type="text" id="p-name" placeholder="例如: 玉女番茄"></div>
+        <div><label>產地</label><input type="text" id="p-location" value="嘉義縣太保市"></div>
+        <div><label>生產者</label><input type="text" id="p-farmer" value="陳大農"></div>
+        <div style="grid-column: span 2;"><label>照片連結</label><input type="text" id="p-photo" placeholder="https://imgur.com/..."></div>
+    </div>
+    <button onclick="registerProduct()">✅ 註冊產品到區塊鏈</button>
+
+    <hr>
+
+    <h3>2. 新增生產 / 施藥紀錄</h3>
+    <div class="form-group"><label>產品 ID</label><input type="text" id="rec-id" placeholder="輸入 ID (例如: P001)"></div>
+
+    <div class="form-group">
+        <label>作業種類</label>
+        <select id="rec-process" onchange="handleProcessChange()">
+            <option value="耕地管理">耕地管理</option>
+            <option value="種植">種植</option>
+            <option value="施肥">施肥</option>
+            <option value="施藥">☠️ 施藥 (Pesticide Application)</option>
+            <option value="採收">採收</option>
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label>作業日期</label>
+        <input type="date" id="rec-date">
+        <small id="date-hint" style="color:#666;">一般作業可補登；施藥建議當日。</small>
+    </div>
+
+    <div id="pesticide-inputs" class="pesticide-box">
+        <h4 style="margin-top:0; color:#c62828;">⚠️ 施藥管制資料 (將啟動智能合約鎖定)</h4>
+        <div class="form-group"><label>農藥名稱</label><input type="text" id="pest-name" placeholder="例如: 納乃得"></div>
+        <div class="form-group"><label>稀釋倍數/劑量</label><input type="text" id="pest-dose" placeholder="例如: 1000倍"></div>
+        <div class="form-group">
+            <label>安全採收期 (PHI) - 天數</label>
+            <input type="number" id="pest-phi" placeholder="例如: 7 (代表7天內禁止採收)">
+            <small style="color:#d32f2f;">注意：輸入後區塊鏈將自動鎖定，${PHI} 天內無法進行採收登錄。</small>
+        </div>
+    </div>
+
+    <div class="form-group" id="normal-inputs">
+        <label>詳細內容</label><input type="text" id="rec-detail" placeholder="例如: 使用有機肥">
+    </div>
+    
+    <div class="form-group"><label>備註</label><input type="text" id="rec-note"></div>
+
+    <button onclick="addRecord()" style="background: #1565c0;">➕ 新增紀錄 (MetaMask)</button>
+
+    <hr>
+
+    <h3>3. 狀態查詢 (藥檢鎖定檢查)</h3>
+    <div style="display:flex; gap:10px;">
+        <input type="text" id="query-id" placeholder="輸入 ID 查詢">
+        <button onclick="checkStatus()" style="margin:0; width:150px; background:#f57c00;">🔍 查詢狀態</button>
+    </div>
+    <div id="status-result" class="status-box"></div>
+</div>
+
+<script>
+    // ★★★ 請替換成你新部署的 V4 合約地址 ★★★
+    const contractAddress = "0xdA79a8FDFf7ff6AD187c679Df7d6519b45b6C52f";
+    
+    // 對應 V4 合約的 ABI
+    const contractABI = [
+        {"inputs":[{"internalType":"string","name":"_id","type":"string"},{"internalType":"string","name":"_name","type":"string"},{"internalType":"string","name":"_location","type":"string"},{"internalType":"string","name":"_farmer","type":"string"},{"internalType":"string","name":"_photoUrl","type":"string"}],"name":"registerProduct","outputs":[],"stateMutability":"nonpayable","type":"function"},
+        {"inputs":[{"internalType":"string","name":"_id","type":"string"},{"internalType":"string","name":"_date","type":"string"},{"internalType":"string","name":"_action","type":"string"},{"internalType":"string","name":"_note","type":"string"},{"internalType":"uint256","name":"_phi","type":"uint256"}],"name":"addHistory","outputs":[],"stateMutability":"nonpayable","type":"function"},
+        {"inputs":[{"internalType":"string","name":"_id","type":"string"}],"name":"getProduct","outputs":[{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"}
+    ];
+
+    let web3;
+    let contract;
+
+    // 1. 初始化與連線
+    window.addEventListener('load', async () => {
+        if (window.ethereum) {
+            web3 = new Web3(window.ethereum);
+            try {
+                await window.ethereum.request({ method: 'eth_requestAccounts' });
+                contract = new web3.eth.Contract(contractABI, contractAddress);
+                
+                const accounts = await web3.eth.getAccounts();
+                document.getElementById('wallet-status').innerText = "🟢 已連線: " + accounts[0].substring(0,6) + "...";
+                document.getElementById('wallet-status').style.background = "#c8e6c9";
+                
+                // 預設日期為今天
+                document.getElementById("rec-date").valueAsDate = new Date();
+
+            } catch (error) {
+                console.error(error);
+                alert("請允許 MetaMask 連線！");
+            }
+        } else {
+            alert("請安裝 MetaMask 錢包！");
+        }
+    });
+
+    // 2. 切換施藥/一般模式的 UI 顯示
+    function handleProcessChange() {
+        const type = document.getElementById("rec-process").value;
+        const pestBox = document.getElementById("pesticide-inputs");
+        const normalBox = document.getElementById("normal-inputs");
+        
+        if (type === "施藥") {
+            pestBox.style.display = "block";
+            normalBox.style.display = "none";
+            document.getElementById("rec-date").valueAsDate = new Date(); // 施藥建議帶入今天
+        } else {
+            pestBox.style.display = "none";
+            normalBox.style.display = "block";
+        }
+    }
+
+    // 3. 註冊產品
+    async function registerProduct() {
+        const id = document.getElementById("p-id").value;
+        const name = document.getElementById("p-name").value;
+        const location = document.getElementById("p-location").value;
+        const farmer = document.getElementById("p-farmer").value;
+        const photo = document.getElementById("p-photo").value;
+        
+        if(!id || !name) return alert("請填寫完整資料");
+
+        try {
+            const accounts = await web3.eth.getAccounts();
+            await contract.methods.registerProduct(id, name, location, farmer, photo)
+                .send({ from: accounts[0] });
+            alert("✅ 產品註冊成功！");
+        } catch (err) {
+            alert("交易失敗：" + err.message);
+        }
+    }
+
+    // 4. 新增紀錄 (核心邏輯)
+    async function addRecord() {
+        const id = document.getElementById("rec-id").value;
+        const type = document.getElementById("rec-process").value;
+        const date = document.getElementById("rec-date").value;
+        const noteRaw = document.getElementById("rec-note").value;
+        
+        let actionStr = "";
+        let phi = 0;
+
+        // 判斷是否為施藥
+        if (type === "施藥") {
+            const pName = document.getElementById("pest-name").value;
+            const pDose = document.getElementById("pest-dose").value;
+            const pPhi = document.getElementById("pest-phi").value;
+            
+            if(!pName || !pPhi) return alert("施藥資料請填寫完整");
+            
+            actionStr = `施藥: ${pName} (${pDose})`;
+            phi = parseInt(pPhi); // 這是要傳給合約計算鎖定時間的關鍵數字
+        } else {
+            const detail = document.getElementById("rec-detail").value;
+            actionStr = `${type}: ${detail}`;
+            phi = 0;
+        }
+
+        // 如果是採收，先前端檢查一下有沒有被鎖定 (雖然後端合約可以不擋，但前端提示比較友善)
+        if (type === "採收") {
+            try {
+                const product = await contract.methods.getProduct(id).call();
+                const unlockTime = product[4]; // 第5個回傳值是時間戳
+                const now = Math.floor(Date.now() / 1000);
+                
+                if (unlockTime > now) {
+                    const waitDays = ((unlockTime - now) / 86400).toFixed(1);
+                    const confirmHarvest = confirm(`⚠️ 警告！目前處於「藥檢鎖定安全期」。\n還有 ${waitDays} 天才解鎖。\n\n您確定要強制採收嗎？(這將違反安全規範)`);
+                    if (!confirmHarvest) return;
+                }
+            } catch(e) { console.log("檢查鎖定失敗", e); }
+        }
+
+        try {
+            const accounts = await web3.eth.getAccounts();
+            // 呼叫合約: 傳入 PHI 參數
+            await contract.methods.addHistory(id, date, actionStr, noteRaw, phi)
+                .send({ from: accounts[0] });
+            
+            alert("✅ 紀錄已上鏈！" + (phi > 0 ? `\n🔒 產品已鎖定 ${phi} 天` : ""));
+            // 清空輸入
+            document.getElementById("rec-detail").value = "";
+            document.getElementById("rec-note").value = "";
+        } catch (err) {
+            alert("交易失敗：" + err.message);
+        }
+    }
+
+    // 5. 查詢狀態 (Lock Check)
+    async function checkStatus() {
+        const id = document.getElementById("query-id").value;
+        try {
+            const p = await contract.methods.getProduct(id).call();
+            const resultBox = document.getElementById("status-result");
+            resultBox.style.display = "block";
+
+            // p[0]:Name, p[4]:EarliestHarvestDate (timestamp)
+            const now = Math.floor(Date.now() / 1000);
+            const unlockTime = p[4];
+            let statusHtml = "";
+
+            if (unlockTime > now) {
+                const waitSeconds = unlockTime - now;
+                const waitDays = (waitSeconds / 86400).toFixed(1);
+                statusHtml = `
+                    <div style="color:red; font-weight:bold; font-size:1.2em; border: 2px solid red; padding:10px; border-radius:5px;">
+                        ⛔ 藥檢鎖定中 (Safety Lock Active)<br>
+                        <span style="font-size:0.8em; color:black">還有 ${waitDays} 天才可安全採收</span>
+                    </div>`;
+            } else {
+                statusHtml = `
+                    <div style="color:green; font-weight:bold; font-size:1.2em; border: 2px solid green; padding:10px; border-radius:5px;">
+                        ✅ 安全採收期 (Safe to Harvest)<br>
+                        <span style="font-size:0.8em; color:black">目前無藥物殘留風險</span>
+                    </div>`;
+            }
+
+            resultBox.innerHTML = `
+                <p><b>產品名稱:</b> ${p[0]}</p>
+                <p><b>產地:</b> ${p[1]}</p>
+                <hr>
+                ${statusHtml}
+            `;
+
+        } catch (e) {
+            alert("查無資料，請確認 ID 正確");
+        }
+    }
+</script>
+</body>
+</html>
