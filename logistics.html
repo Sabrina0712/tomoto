@@ -3,226 +3,146 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>物流狀態更新 - AgriTrace V6</title>
-    
+    <title>物流運輸端</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.7.4/web3.min.js"></script>
-
-    <script>
-        window.onerror = function(message, source, lineno, colno, error) {
-            alert("⚠️ 網頁發生錯誤：\n" + message + "\n行數：" + lineno);
-        };
-    </script>
-
     <style>
-        /* 全域設定 */
-        body { font-family: 'Microsoft JhengHei', sans-serif; background: #e3f2fd; margin: 0; padding: 20px; }
-        .container { max-width: 600px; margin: 30px auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); border-top: 8px solid #1976d2; }
+        body { font-family: 'Microsoft JhengHei', sans-serif; background: #e3f2fd; padding: 20px; color: #333; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         
-        /* 標題與圖示 */
-        .icon-header { font-size: 3em; display: block; text-align: center; margin-bottom: 10px; }
-        h1 { text-align: center; color: #1565c0; margin-bottom: 30px; font-weight: bold; }
+        h1 { text-align: center; color: #1565c0; margin-bottom: 10px; }
+        .wallet-bar { text-align: center; margin-bottom: 30px; background: #bbdefb; padding: 10px; border-radius: 8px; }
+        .status-badge { font-weight: bold; color: #c62828; }
+        .status-badge.connected { color: #1565c0; }
 
-        /* 表單區域 */
-        .form-group { margin-bottom: 20px; }
-        label { display: block; margin-bottom: 8px; font-weight: bold; color: #333; }
-        input, select { 
-            width: 100%; padding: 12px; border: 2px solid #ddd; 
-            border-radius: 8px; font-size: 16px; box-sizing: border-box; 
-            background: #fafafa; transition: 0.3s;
-        }
-        input:focus, select:focus { border-color: #2196f3; outline: none; background: #fff; }
-
-        /* 按鈕樣式 */
-        .btn-submit { 
-            width: 100%; padding: 15px; background: #1976d2; color: white; 
-            border: none; border-radius: 50px; cursor: pointer; 
-            font-size: 1.2em; font-weight: bold; margin-top: 10px;
-            box-shadow: 0 4px 10px rgba(25, 118, 210, 0.3); transition: 0.2s;
-        }
-        .btn-submit:hover { background: #1565c0; transform: translateY(-2px); }
-        .btn-submit:disabled { background: #b0bec5; cursor: not-allowed; transform: none; box-shadow: none; }
-
-        /* 訊息框樣式 */
-        .status-box { margin-top: 25px; padding: 15px; border-radius: 8px; display: none; text-align: center; font-weight: bold; line-height: 1.6; word-break: break-all;}
-        .error { background: #ffebee; color: #c62828; border: 2px solid #ef5350; }
-        .success { background: #e8f5e9; color: #2e7d32; border: 2px solid #4caf50; }
+        h3 { border-left: 5px solid #2196f3; padding-left: 12px; color: #1565c0; margin-top: 40px; }
         
-        /* 載入動畫 */
-        .loading { color: #1976d2; font-weight: bold; display: none; text-align: center; margin-top: 20px;}
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .full-width { grid-column: span 2; }
         
-        /* 返回連結 */
-        .nav-links { text-align: center; margin-top: 25px; }
-        .nav-links a { text-decoration: none; color: #78909c; font-size: 0.9em; }
-        .nav-links a:hover { color: #1976d2; }
+        label { display: block; margin: 8px 0 5px; font-weight: bold; color: #555; }
+        input, select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
+        input:focus { border-color: #2196f3; outline: none; }
+
+        button { width: 100%; padding: 12px; margin-top: 15px; border: none; border-radius: 6px; font-size: 16px; cursor: pointer; transition: 0.3s; font-weight: bold; }
+        
+        /* 統一使用藍色按鈕 */
+        .btn-blue { background: #1565c0; color: white; }
+        .btn-blue:hover { background: #0d47a1; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <span class="icon-header">🚚</span>
-    <h1>物流狀態更新 (V6)</h1>
+    <h1>物流運輸管理系統</h1>
     
-    <div class="form-group">
-        <label>📦 產品 ID (Product ID)</label>
-        <input type="text" id="log-id" placeholder="請輸入批號 (例如：P005)">
+    <div class="wallet-bar">
+        狀態：<span id="wallet-status" class="status-badge">🔴 未連線</span>
+        <button onclick="checkConnection()" style="width: auto; padding: 5px 15px; margin-left: 10px; background:#2196f3; color:white;">🔗 連線錢包</button>
     </div>
 
-    <div class="form-group">
-        <label>📅 更新日期</label>
-        <input type="date" id="log-date">
-    </div>
-
-    <div class="form-group">
-        <label>🔄 當前狀態</label>
-        <select id="log-status">
-            <option value="物流收件: 準備運送">📦 物流收件 (Picked Up)</option>
-            <option value="運送中: 前往集貨中心">🚛 運送中 (In Transit)</option>
-            <option value="已送達: 門市簽收">✅ 已送達 (Delivered)</option>
-            <option value="退貨: 產品損壞">↩️ 退貨處理 (Returned)</option>
-        </select>
-    </div>
-
-    <div class="form-group">
-        <label>📝 備註 (車號/溫度/單號)</label>
-        <input type="text" id="log-note" placeholder="例如：車號 ABC-1234, 冷藏 4°C">
-    </div>
-
-    <button class="btn-submit" onclick="submitLogistics()" id="submitBtn">確認更新上鏈</button>
+    <h3>📦 新增物流運送紀錄</h3>
     
-    <div id="loading-msg" class="loading">
-        <div style="font-size: 20px;">⏳</div>
-        正在連接區塊鏈...<br>請留意 MetaMask 是否有跳出視窗
+    <div class="form-grid">
+        <div class="full-width">
+            <label>產品 ID (Product ID)</label>
+            <input type="text" id="rec-id" placeholder="請輸入產品批號 (例如: P005)">
+        </div>
+        
+        <div>
+            <label>物流狀態</label>
+            <select id="rec-process">
+                <option value="物流收件">📦 物流收件 (Picked Up)</option>
+                <option value="運送中">🚛 運送中 (In Transit)</option>>
+                <option value="抵達賣場">🏪 抵達賣場 (Arrived)</option>
+                <option value="退貨處理">↩️ 退貨處理 (Returned)</option>
+            </select>
+        </div>
+        <div>
+            <label>更新日期</label>
+            <input type="date" id="rec-date">
+        </div>
     </div>
-    
-    <div id="msg-box" class="status-box"></div>
 
-    <div class="nav-links">
-        <a href="index.html">← 回到首頁</a>
+    <div style="margin-top: 15px;">
+        <label>詳細資訊 (車號 / 溫度 / 單號)</label>
+        <input type="text" id="rec-detail" placeholder="例如: 車號 ABC-1234 / 冷藏 4°C">
     </div>
+
+    <div style="margin-top: 15px;">
+        <label>備註 (選填)</label>
+        <input type="text" id="rec-note" placeholder="其他補充事項...">
+    </div>
+
+    <button class="btn-blue" onclick="addRecord()">🚚 更新物流狀態上鏈</button>
+
 </div>
 
 <script>
-    // === 0. 基礎設定 ===
-    console.log("🚀 物流頁面重新載入成功");
-    document.getElementById('log-date').valueAsDate = new Date();
+    // ▼▼▼ 合約地址 (與農夫端共用) ▼▼▼
+    const contractAddress = "0xf7ACEF0084b480F240643eaF9e292E7dd4B46d8F"; 
 
-    // ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
-    // 關鍵：請填入與 Farmer 頁面相同的 V6 合約地址
-    const contractAddress = "0x786b118e72075f6a3b7d5E7Db8C6F78933494298"; 
-    // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
-    
-    // V6 的 ABI (注意：這裡必須用 addHistory，因為 V6 沒有 addRecord 了)
     const contractABI = [
         {"inputs":[{"internalType":"string","name":"_id","type":"string"},{"internalType":"string","name":"_name","type":"string"},{"internalType":"string","name":"_location","type":"string"},{"internalType":"string","name":"_farmer","type":"string"},{"internalType":"string","name":"_photoUrl","type":"string"}],"name":"registerProduct","outputs":[],"stateMutability":"nonpayable","type":"function"},
-        {"inputs":[{"internalType":"string","name":"_id","type":"string"},{"internalType":"string","name":"_date","type":"string"},{"internalType":"string","name":"_action","type":"string"},{"internalType":"string","name":"_note","type":"string"},{"internalType":"uint256","name":"_phi","type":"uint256"},{"internalType":"uint256","name":"_dateTimestamp","type":"uint256"}],"name":"addHistory","outputs":[],"stateMutability":"nonpayable","type":"function"},
-        {"inputs":[{"internalType":"string","name":"_id","type":"string"}],"name":"getProduct","outputs":[{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"}
+        {"inputs":[{"internalType":"string","name":"_id","type":"string"},{"internalType":"string","name":"_date","type":"string"},{"internalType":"string","name":"_action","type":"string"},{"internalType":"string","name":"_note","type":"string"},{"internalType":"uint256","name":"_phi","type":"uint256"},{"internalType":"uint256","name":"_dateTimestamp","type":"uint256"}],"name":"addHistory","outputs":[],"stateMutability":"nonpayable","type":"function"}
     ];
 
     let web3;
     let contract;
 
-    // === 1. 連接錢包 ===
-    async function initWeb3() {
-        if (typeof window.ethereum !== 'undefined') {
-            web3 = new Web3(window.ethereum);
+    // 🔥 移除日期限制，只保留預設填入今天
+    window.onload = function() {
+        document.getElementById('rec-date').valueAsDate = new Date();
+    }
+
+    async function checkConnection() {
+        if (window.ethereum) {
             try {
-                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                console.log("已連接帳戶:", accounts[0]);
+                web3 = new Web3(window.ethereum);
+                await window.ethereum.request({ method: 'eth_requestAccounts' });
+                const accounts = await web3.eth.getAccounts();
                 contract = new web3.eth.Contract(contractABI, contractAddress);
+                
+                const statusBadge = document.getElementById('wallet-status');
+                statusBadge.innerText = "🟢 已連線: " + accounts[0].substring(0,6) + "...";
+                statusBadge.className = "status-badge connected";
                 return true;
             } catch (error) {
                 console.error(error);
-                alert("❌ MetaMask 連接失敗: " + error.message);
+                alert("連線失敗");
                 return false;
             }
         } else {
-            alert("❌ 錯誤：找不到 MetaMask");
+            alert("請安裝 MetaMask");
             return false;
         }
     }
 
-    // === 2. 顯示訊息工具 ===
-    function showMsg(text, type) {
-        const box = document.getElementById('msg-box');
-        if (type === 'none') {
-            box.style.display = 'none';
-        } else {
-            box.style.display = 'block';
-            box.innerHTML = text;
-            box.className = "status-box " + type;
-        }
-    }
+    async function addRecord() {
+        if (!await checkConnection()) return;
 
-    // === 3. 主流程：提交按鈕 ===
-    async function submitLogistics() {
-        const id = document.getElementById('log-id').value.trim();
-        const dateStr = document.getElementById('log-date').value;
-        const status = document.getElementById('log-status').value;
-        const note = document.getElementById('log-note').value;
+        const id = document.getElementById("rec-id").value;
+        const type = document.getElementById("rec-process").value;
+        const date = document.getElementById("rec-date").value;
+        const detail = document.getElementById("rec-detail").value;
+        const noteRaw = document.getElementById("rec-note").value;
 
-        if (!id) return alert("⚠️ 請輸入產品 ID");
+        if(!id || !date) return alert("ID 與日期為必填");
 
-        // 🔥 關鍵修改 1：計算日期的秒數 (Timestamp)
-        const dateObj = new Date(dateStr);
-        const dateTimestamp = Math.floor(dateObj.getTime() / 1000);
-
-        // 鎖定畫面
-        const btn = document.getElementById('submitBtn');
-        const loading = document.getElementById('loading-msg');
-        btn.disabled = true;
-        loading.style.display = 'block';
-        showMsg("", "none");
+        const timestamp = Math.floor(new Date(date).getTime() / 1000);
+        const actionStr = `${type}: ${detail}`;
+        const phi = 0;
 
         try {
-            // A. 連接錢包
-            const connected = await initWeb3();
-            if (!connected) throw new Error("錢包連接失敗");
-
-            // B. 檢查藥檢狀態
-            console.log("正在檢查 ID:", id);
-            let productData;
-            try {
-                productData = await contract.methods.getProduct(id).call();
-            } catch (e) {
-                throw new Error("無法讀取資料，請確認合約地址正確且 ID 存在。");
-            }
-
-            if (!productData[0]) throw new Error("查無此 ID");
-
-            const unlockTime = parseInt(productData[4]); 
-            const now = Math.floor(Date.now() / 1000);
-
-            // 這裡的邏輯是：如果藥檢鎖定中，物流不能出貨
-            if (now < unlockTime) {
-                const waitDays = ((unlockTime - now) / 86400).toFixed(1);
-                throw new Error(`⛔ 禁止出貨！(藥檢管制中)\n還需等待 ${waitDays} 天`);
-            }
-
-            // C. 送出交易
-            const accounts = await web3.eth.getAccounts();
-            console.log("準備送出:", id, dateStr, status, note, 0, dateTimestamp);
+            await contract.methods.addHistory(id, date, actionStr, noteRaw, phi, timestamp)
+                .send({ from: (await web3.eth.getAccounts())[0] });
             
-            // 🔥 關鍵修改 2：改用 addHistory，並補上 PHI=0 和 Timestamp
-            await contract.methods.addHistory(id, dateStr, status, note, 0, dateTimestamp)
-                .send({ from: accounts[0] })
-                .on('transactionHash', function(hash){
-                    loading.innerHTML = "交易打包中...<br>Hash: " + hash.substring(0,10) + "...";
-                });
-
-            // D. 成功
-            showMsg(`✅ 成功！物流狀態已更新：<br>${status}`, "success");
-            document.getElementById('log-note').value = ""; 
-
+            alert("✅ 物流狀態已更新成功！");
+            
+            document.getElementById("rec-detail").value = "";
+            document.getElementById("rec-note").value = "";
         } catch (err) {
-            console.error("錯誤:", err);
-            let errorText = err.message;
-            if (err.message.includes("User denied")) errorText = "您取消了交易";
-            
-            showMsg("❌ " + errorText, "error");
-            alert("發生錯誤:\n" + errorText);
-        } finally {
-            btn.disabled = false;
-            loading.style.display = 'none';
+            console.error(err);
+            alert("交易失敗: " + err.message);
         }
     }
 </script>
