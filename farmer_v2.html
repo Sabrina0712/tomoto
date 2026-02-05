@@ -122,6 +122,33 @@
 </div>
 
 <script>
+    // === 🕒 日期限制設定：只允許補登過去 14 天內的資料 ===
+
+// 1. 取得今天的日期 (格式 YYYY-MM-DD)
+const today = new Date();
+const todayStr = today.toISOString().split('T')[0];
+
+// 2. 計算 14 天前的日期
+const limitDays = 14; // 你可以隨意改成 7天 或 30天
+const pastDate = new Date();
+pastDate.setDate(today.getDate() - limitDays);
+const minDateStr = pastDate.toISOString().split('T')[0];
+
+// 3. 取得日期輸入框 (請確認你的 ID 是否為 'process-date')
+const dateInput = document.getElementById('process-date'); 
+
+if (dateInput) {
+    // 設定最大值為今天 (不能選未來)
+    dateInput.max = todayStr;
+    
+    // 設定最小值為 14 天前 (不能選更早)
+    dateInput.min = minDateStr;
+
+    // 預設填入今天
+    dateInput.value = todayStr;
+
+    console.log(`📅 日期限制已啟動：只能選擇 ${minDateStr} ~ ${todayStr} 之間的日期`);
+}
     // ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
     // 關鍵：請在這裡貼上你 Remix 最新的合約地址！
     const contractAddress = "0xdA79a8FDFf7ff6AD187c679Df7d6519b45b6C52f"; 
@@ -310,3 +337,4 @@
 
 </body>
 </html>
+
