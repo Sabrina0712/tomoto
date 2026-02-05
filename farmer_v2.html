@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>👨‍🌾 農夫生產端</title>
+    <title>農夫生產管理系統</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.7.4/web3.min.js"></script>
     <style>
+        /* === V7 樣式維持不變 === */
         body { font-family: 'Microsoft JhengHei', sans-serif; background: #f1f8e9; padding: 20px; color: #333; }
         .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         
@@ -22,6 +23,15 @@
         label { display: block; margin: 8px 0 5px; font-weight: bold; color: #555; }
         input, select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
         input:focus { border-color: #4caf50; outline: none; }
+        
+        /* 🔥 新增：當日期被鎖定時的樣式 (灰色背景+禁止游標) */
+        input:disabled { 
+            background-color: #e0e0e0; 
+            color: #555; 
+            cursor: not-allowed; 
+            border: 1px dashed #999; 
+            font-weight: bold;
+        }
 
         button { width: 100%; padding: 12px; margin-top: 15px; border: none; border-radius: 6px; font-size: 16px; cursor: pointer; transition: 0.3s; font-weight: bold; }
         .btn-green { background: #2e7d32; color: white; }
@@ -38,7 +48,7 @@
             border-radius: 8px; 
             margin-top: 15px;
         }
-        .warning-text { color: #d32f2f; font-size: 0.9em; margin-top: 5px; }
+        .warning-text { color: #d32f2f; font-size: 0.9em; margin-top: 5px; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -51,9 +61,9 @@
         <button onclick="checkConnection()" style="width: auto; padding: 5px 15px; margin-left: 10px; background:#4caf50; color:white;">🔗 連線錢包</button>
     </div>
 
-    <h3>1.註冊新產品</h3>
+    <h3>1. 註冊新產品</h3>
     <div class="form-grid">
-        <div><label>產品 ID (唯一編號)</label><input type="text" id="p-id" placeholder="例如: P005"></div>
+        <div><label>產品 ID</label><input type="text" id="p-id" placeholder="例如: P005"></div>
         <div><label>產品名稱</label><input type="text" id="p-name" placeholder="例如: 玉女番茄"></div>
         <div><label>產地</label><input type="text" id="p-location" value="嘉義縣太保市"></div>
         <div><label>生產者姓名</label><input type="text" id="p-farmer" value="陳大農"></div>
@@ -66,8 +76,7 @@
 
     <hr style="margin: 40px 0; border: 0; border-top: 1px dashed #ccc;">
 
-    <h3>2.新增田間作業紀錄</h3>
-    <p style="color:#666; font-size:0.9em;">⚠️ 注意：系統開放補登 <b>14天內</b> 的作業紀錄。</p>
+    <h3>2. 新增生產 / 施藥紀錄</h3>
     
     <div class="form-grid">
         <div class="full-width"><label>目標產品 ID</label><input type="text" id="rec-id" placeholder="輸入要更新的產品 ID"></div>
@@ -75,16 +84,18 @@
         <div>
             <label>執行動作</label>
             <select id="rec-process" onchange="handleProcessChange()">
+                <option value="耕地管理">耕地管理</option>
                 <option value="種植">種植 / 育苗</option>
                 <option value="施肥">施肥</option>
-                <option value="施藥">☠️ 施藥 (Pesticide)</option>
+                <option value="施藥">☠️ 施藥</option>
                 <option value="採收">採收</option>
                 <option value="加工/包裝">加工 / 包裝</option>
             </select>
         </div>
         <div>
-            <label>執行日期 (限14天內)</label>
+            <label>執行日期</label>
             <input type="date" id="rec-date">
+            <small id="date-hint" style="color:#666; font-size:0.8em; display:block; margin-top:5px;">一般作業可補登 14 天</small>
         </div>
     </div>
 
@@ -97,10 +108,11 @@
         <h4 style="margin:0 0 10px 0; color:#c62828;">⚠️ 施藥管制資料</h4>
         <div class="form-grid">
             <div><label>農藥名稱</label><input type="text" id="pest-name" placeholder="例如: 納乃得"></div>
+            <div><label>劑量/倍數</label><input type="text" id="pest-dose" placeholder="例如: 1000倍"></div>
             <div class="full-width">
                 <label>安全採收期 (PHI 天數)</label>
-                <input type="number" id="pest-phi" placeholder="例如: 7 (代表7天內不可採收)">
-                <div class="warning-text">系統將依據此天數自動計算安全期。</div>
+                <input type="number" id="pest-phi" placeholder="例如: 7 (代表7天內禁止採收)">
+                <div class="warning-text">注意：系統將依據此天數鎖定採收狀態。</div>
             </div>
         </div>
     </div>
@@ -110,12 +122,12 @@
         <input type="text" id="rec-note" placeholder="其他補充事項...">
     </div>
 
-    <button class="btn-blue" onclick="addRecord()">➕ 新增生產紀錄</button>
+    <button class="btn-blue" onclick="addRecord()">➕ 新增紀錄到區塊鏈</button>
 
 </div>
 
 <script>
-    // ▼▼▼ 合約地址 ▼▼▼
+    // 合約地址
     const contractAddress = "0xf7ACEF0084b480F240643eaF9e292E7dd4B46d8F"; 
 
     const contractABI = [
@@ -126,20 +138,9 @@
     let web3;
     let contract;
 
-    // 設定日期限制 (14天)
     window.onload = function() {
-        const dateInput = document.getElementById('rec-date');
-        const today = new Date();
-        dateInput.valueAsDate = today;
-
-        const pastDate = new Date();
-        pastDate.setDate(today.getDate() - 14);
-
-        const minDateStr = pastDate.toISOString().split('T')[0];
-        const maxDateStr = today.toISOString().split('T')[0];
-
-        dateInput.min = minDateStr;
-        dateInput.max = maxDateStr;
+        // 預設填入今天
+        document.getElementById('rec-date').valueAsDate = new Date();
     }
 
     async function checkConnection() {
@@ -165,6 +166,40 @@
         }
     }
 
+    // 🔥 核心修改：切換動作時的日期鎖定邏輯 🔥
+    function handleProcessChange() {
+        const type = document.getElementById("rec-process").value;
+        const pestBox = document.getElementById("pesticide-inputs");
+        const normalBox = document.getElementById("normal-inputs");
+        const dateInput = document.getElementById("rec-date");
+        const dateHint = document.getElementById("date-hint");
+
+        if (type.includes("施藥")) {
+            // 1. 顯示施藥欄位
+            pestBox.style.display = "block";
+            normalBox.style.display = "none";
+            
+            // 2. 🔥 強制將日期設為今天
+            dateInput.valueAsDate = new Date();
+            
+            // 3. 🔥 鎖定輸入框 (Disabled)
+            dateInput.disabled = true;
+            
+            // 4. 更新提示文字
+            dateHint.innerHTML = "🚫 <b style='color:red;'>法規限制：施藥必須當日申報，無法修改日期。</b>";
+        } else {
+            // 1. 回復一般欄位
+            pestBox.style.display = "none";
+            normalBox.style.display = "block";
+            
+            // 2. 🔥 解鎖輸入框
+            dateInput.disabled = false;
+            
+            // 3. 恢復提示文字
+            dateHint.innerHTML = "一般作業可補登 14 天";
+        }
+    }
+
     async function registerProduct() {
         if (!await checkConnection()) return;
         const [id, name, loc, farmer, photo] = ["p-id","p-name","p-location","p-farmer","p-photo"].map(x=>document.getElementById(x).value);
@@ -181,56 +216,73 @@
 
         const id = document.getElementById("rec-id").value;
         const type = document.getElementById("rec-process").value;
-        const date = document.getElementById("rec-date").value;
+        let dateVal = document.getElementById("rec-date").value;
         const noteRaw = document.getElementById("rec-note").value;
 
-        if(!id || !date) return alert("ID 與日期為必填");
+        if(!id) return alert("請輸入產品 ID");
 
-        // 14天檢查邏輯
-        const selectedDate = new Date(date);
-        const today = new Date();
-        const limitDate = new Date();
-        limitDate.setDate(today.getDate() - 14);
-        
-        selectedDate.setHours(0,0,0,0);
-        limitDate.setHours(0,0,0,0);
+        let actionStr = "";
+        let phi = 0;
 
-        if (selectedDate < limitDate) {
-            return alert("⚠️ 日期錯誤：依規定只能補登 14 天內的紀錄！");
-        }
-
-        const timestamp = Math.floor(new Date(date).getTime() / 1000);
-        let actionStr = "", phi = 0;
-
+        // 🔥 送出前的嚴格檢查 🔥
         if (type.includes("施藥")) {
+            
+            // 即使使用者用開發者工具解鎖了 input，這裡我們直接用程式碼覆蓋日期
+            // 強制使用「今天」的日期
+            const today = new Date().toISOString().split('T')[0];
+            dateVal = today; 
+
             const pName = document.getElementById("pest-name").value;
+            const pDose = document.getElementById("pest-dose").value;
             const pPhi = document.getElementById("pest-phi").value;
-            if(!pName || !pPhi) return alert("請填寫施藥資料");
-            actionStr = `施藥: ${pName}`;
+            
+            if(!pName || !pDose || !pPhi) return alert("❌ 施藥資料不完整 (名稱/劑量/PHI 為必填)");
+            
+            actionStr = `施藥: ${pName} / 劑量: ${pDose}`;
             phi = parseInt(pPhi);
+
         } else {
+            // 一般作業：檢查 14 天限制
+            if(!dateVal) return alert("請選擇日期");
+            
+            const selectedDate = new Date(dateVal);
+            const today = new Date();
+            const limitDate = new Date();
+            limitDate.setDate(today.getDate() - 14);
+            
+            // 只比對日期，忽略時間
+            selectedDate.setHours(0,0,0,0);
+            limitDate.setHours(0,0,0,0);
+            today.setHours(0,0,0,0);
+
+            if (selectedDate < limitDate) return alert("❌ 錯誤：一般作業不能補登超過 14 天以前的紀錄！");
+            if (selectedDate > today) return alert("❌ 錯誤：不能輸入未來日期！");
+
             actionStr = `${type}: ${document.getElementById("rec-detail").value}`;
         }
 
-        try {
-            await contract.methods.addHistory(id, date, actionStr, noteRaw, phi, timestamp)
-                .send({ from: (await web3.eth.getAccounts())[0] });
-            alert("✅ 紀錄新增成功！");
-            
-            document.getElementById("rec-detail").value = "";
-            document.getElementById("rec-note").value = "";
-            document.getElementById("pest-name").value = "";
-        } catch (err) { alert("交易失敗: " + err.message); }
-    }
+        const timestamp = Math.floor(new Date(dateVal).getTime() / 1000);
 
-    function handleProcessChange() {
-        const type = document.getElementById("rec-process").value;
-        const isPest = type.includes("施藥");
-        document.getElementById("pesticide-inputs").style.display = isPest ? "block" : "none";
-        document.getElementById("normal-inputs").style.display = isPest ? "none" : "block";
+        try {
+            await contract.methods.addHistory(id, dateVal, actionStr, noteRaw, phi, timestamp)
+                .send({ from: (await web3.eth.getAccounts())[0] });
+            
+            let msg = "✅ 紀錄已上鏈！";
+            if(phi > 0) msg += `\n⚠️ 產品已進入藥檢鎖定期，${phi} 天內無法採收。`;
+            alert(msg);
+            
+            // 清空
+            document.getElementById("rec-detail").value = "";
+            document.getElementById("pest-name").value = "";
+            document.getElementById("pest-dose").value = "";
+            document.getElementById("pest-phi").value = "";
+            
+        } catch (err) {
+            console.error(err);
+            alert("交易失敗: " + err.message);
+        }
     }
 </script>
 
 </body>
 </html>
-
