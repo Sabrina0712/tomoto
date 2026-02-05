@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>👨‍🌾 農夫生產管理 (含藥檢鎖定)</title>
+    <title>👨‍🌾 農夫生產管理 - V6修正版</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.7.4/web3.min.js"></script>
     <style>
         body { font-family: 'Microsoft JhengHei', sans-serif; background: #f1f8e9; padding: 20px; color: #333; }
@@ -47,7 +47,7 @@
 <body>
 
 <div class="container">
-    <h1>👨‍🌾 農夫生產管理 (含藥檢鎖定)</h1>
+    <h1>👨‍🌾 農夫生產管理 (V6)</h1>
     
     <div class="wallet-bar">
         <span id="wallet-status" class="status-badge">🔴 錢包未連線</span>
@@ -81,6 +81,7 @@
                 <option value="施肥">施肥</option>
                 <option value="施藥">☠️ 施藥 (Pesticide Application)</option>
                 <option value="採收">採收</option>
+                <option value="物流">🚚 物流出貨</option>
             </select>
         </div>
         <div><label>日期</label><input type="date" id="rec-date"></div>
@@ -92,14 +93,14 @@
     </div>
 
     <div id="pesticide-inputs" class="pesticide-box">
-        <h4 style="margin:0 0 10px 0; color:#c62828;">⚠️ 施藥管制資料 (將啟動智能合約鎖定)</h4>
+        <h4 style="margin:0 0 10px 0; color:#c62828;">⚠️ 施藥管制資料 (系統將依據所選日期鎖定)</h4>
         <div class="form-grid">
             <div><label>農藥名稱</label><input type="text" id="pest-name" placeholder="例如: 納乃得"></div>
             <div><label>稀釋倍數</label><input type="text" id="pest-dose" placeholder="例如: 1000倍"></div>
             <div class="full-width">
                 <label>安全採收期 (PHI天數)</label>
-                <input type="number" id="pest-phi" placeholder="輸入 7 代表鎖定7天">
-                <div class="warning-text">注意：輸入後，區塊鏈將自動鎖定該產品，期限內無法顯示為安全。</div>
+                <input type="number" id="pest-phi" placeholder="輸入 7 代表從施藥日鎖定7天">
+                <div class="warning-text">注意：請確認上方日期正確，鎖定期間將無法顯示為安全。</div>
             </div>
         </div>
     </div>
@@ -123,72 +124,51 @@
 
 <script>
     // === 🕒 日期限制設定：只允許補登過去 14 天內的資料 ===
+    window.onload = function() {
+        const dateInput = document.getElementById('rec-date');
+        if (dateInput) {
+            const today = new Date();
+            const todayStr = today.toISOString().split('T')[0];
+            
+            const limitDays = 14; 
+            const pastDate = new Date();
+            pastDate.setDate(today.getDate() - limitDays);
+            const minDateStr = pastDate.toISOString().split('T')[0];
 
-// 1. 取得今天的日期 (格式 YYYY-MM-DD)
-const today = new Date();
-const todayStr = today.toISOString().split('T')[0];
+            dateInput.max = todayStr;
+            dateInput.min = minDateStr;
+            dateInput.value = todayStr;
+            console.log(`✅ 日期限制啟動：${minDateStr} ~ ${todayStr}`);
+        }
+    }
 
-// 2. 計算 14 天前的日期
-const limitDays = 14; // 你可以隨意改成 7天 或 30天
-const pastDate = new Date();
-pastDate.setDate(today.getDate() - limitDays);
-const minDateStr = pastDate.toISOString().split('T')[0];
-
-// 3. 取得日期輸入框 (請確認你的 ID 是否為 'process-date')
-const dateInput = document.getElementById('process-date'); 
-
-if (dateInput) {
-    // 設定最大值為今天 (不能選未來)
-    dateInput.max = todayStr;
-    
-    // 設定最小值為 14 天前 (不能選更早)
-    dateInput.min = minDateStr;
-
-    // 預設填入今天
-    dateInput.value = todayStr;
-
-    console.log(`📅 日期限制已啟動：只能選擇 ${minDateStr} ~ ${todayStr} 之間的日期`);
-}
     // ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
-    // 關鍵：請在這裡貼上你 Remix 最新的合約地址！
-    const contractAddress = "0x786b118e72075f6a3b7d5E7Db8C6F78933494298"; 
+    // 關鍵：請在這裡貼上你 Remix V6 的新合約地址！
+    const contractAddress = "請貼上你的 V6 合約地址"; 
     // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
-    // V4 合約 ABI (包含 PHI 功能)
+    // 🔥 V6 合約 ABI (addHistory 參數已更新)
     const contractABI = [
         {"inputs":[{"internalType":"string","name":"_id","type":"string"},{"internalType":"string","name":"_name","type":"string"},{"internalType":"string","name":"_location","type":"string"},{"internalType":"string","name":"_farmer","type":"string"},{"internalType":"string","name":"_photoUrl","type":"string"}],"name":"registerProduct","outputs":[],"stateMutability":"nonpayable","type":"function"},
-        {"inputs":[{"internalType":"string","name":"_id","type":"string"},{"internalType":"string","name":"_date","type":"string"},{"internalType":"string","name":"_action","type":"string"},{"internalType":"string","name":"_note","type":"string"},{"internalType":"uint256","name":"_phi","type":"uint256"}],"name":"addHistory","outputs":[],"stateMutability":"nonpayable","type":"function"},
-        {"inputs":[{"internalType":"string","name":"_id","type":"string"}],"name":"getProduct","outputs":[{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"}
+        // 注意下方 inputs 有 6 個參數
+        {"inputs":[{"internalType":"string","name":"_id","type":"string"},{"internalType":"string","name":"_date","type":"string"},{"internalType":"string","name":"_action","type":"string"},{"internalType":"string","name":"_note","type":"string"},{"internalType":"uint256","name":"_phi","type":"uint256"},{"internalType":"uint256","name":"_dateTimestamp","type":"uint256"}],"name":"addHistory","outputs":[],"stateMutability":"nonpayable","type":"function"},
+        {"inputs":[{"internalType":"string","name":"_id","type":"string"}],"name":"getProduct","outputs":[{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"uint256","name":"","type":"uint256"},{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"}
     ];
 
-    // 全域變數宣告
     let web3;
     let contract;
 
-    // 1. 初始化與連線檢查
     async function checkConnection() {
-        // 如果已經有 web3 物件，檢查是否真的連上
         if (window.ethereum) {
             try {
-                // 建立 Web3 實例
-                if (!web3) {
-                    web3 = new Web3(window.ethereum);
-                }
-                
-                // 請求用戶授權連線
+                if (!web3) web3 = new Web3(window.ethereum);
                 await window.ethereum.request({ method: 'eth_requestAccounts' });
-                
-                // 取得帳號
                 const accounts = await web3.eth.getAccounts();
-                
-                // 設定合約
                 contract = new web3.eth.Contract(contractABI, contractAddress);
                 
-                // 更新介面狀態
                 const statusBadge = document.getElementById('wallet-status');
                 statusBadge.innerText = "🟢 已連線: " + accounts[0].substring(0,6) + "...";
                 statusBadge.className = "status-badge connected";
-                
                 return true;
             } catch (error) {
                 console.error(error);
@@ -201,9 +181,7 @@ if (dateInput) {
         }
     }
 
-    // 2. 註冊產品
     async function registerProduct() {
-        // 先檢查連線，如果沒連線會自動跳出 MetaMask
         if (!await checkConnection()) return;
 
         const id = document.getElementById("p-id").value;
@@ -216,10 +194,8 @@ if (dateInput) {
 
         try {
             const accounts = await web3.eth.getAccounts();
-            // 發送交易
             await contract.methods.registerProduct(id, name, location, farmer, photo)
                 .send({ from: accounts[0] });
-            
             alert("✅ 產品註冊成功！資料已寫入區塊鏈。");
         } catch (err) {
             console.error(err);
@@ -227,7 +203,7 @@ if (dateInput) {
         }
     }
 
-    // 3. 新增紀錄 (含施藥邏輯)
+    // 3. 新增紀錄 (修正版：日期計算邏輯)
     async function addRecord() {
         if (!await checkConnection()) return;
 
@@ -238,10 +214,13 @@ if (dateInput) {
         
         if(!id || !date) return alert("請輸入產品 ID 與日期");
 
+        // 🔥 修正：計算選擇日期的秒數 (Unix Timestamp)
+        const dateObj = new Date(date);
+        const dateTimestamp = Math.floor(dateObj.getTime() / 1000);
+
         let actionStr = "";
         let phi = 0;
 
-        // 判斷是否為施藥
         if (type === "施藥") {
             const pName = document.getElementById("pest-name").value;
             const pDose = document.getElementById("pest-dose").value;
@@ -259,14 +238,15 @@ if (dateInput) {
 
         try {
             const accounts = await web3.eth.getAccounts();
-            console.log("正在寫入紀錄...", id, date, actionStr, noteRaw, phi);
+            console.log("正在寫入紀錄...", id, date, actionStr, noteRaw, phi, dateTimestamp);
             
-            await contract.methods.addHistory(id, date, actionStr, noteRaw, phi)
+            // 🔥 發送交易：將 dateTimestamp 傳入合約
+            await contract.methods.addHistory(id, date, actionStr, noteRaw, phi, dateTimestamp)
                 .send({ from: accounts[0] });
             
-            alert("✅ 紀錄新增成功！");
+            alert("✅ 紀錄新增成功！系統已根據「施藥日期」計算安全採收期。");
             
-            // 清空輸入框
+            // 清空欄位
             document.getElementById("rec-detail").value = "";
             document.getElementById("rec-note").value = "";
             document.getElementById("pest-name").value = "";
@@ -277,7 +257,6 @@ if (dateInput) {
         }
     }
 
-    // 4. 查詢狀態 (測試用)
     async function checkStatus() {
         if (!await checkConnection()) return;
 
@@ -289,7 +268,6 @@ if (dateInput) {
             const resultBox = document.getElementById("status-result");
             resultBox.style.display = "block";
 
-            // p[4] 是 EarliestHarvestDate (時間戳記)
             const now = Math.floor(Date.now() / 1000);
             const unlockTime = parseInt(p[4]);
             
@@ -304,6 +282,7 @@ if (dateInput) {
             resultBox.innerHTML = `
                 <p><b>產品:</b> ${p[0]} (${p[1]})</p>
                 <p><b>生產者:</b> ${p[2]}</p>
+                <p><b>最新狀態:</b> ${p[5]} (${p[7]})</p>
                 <hr>
                 ${statusHtml}
             `;
@@ -314,7 +293,6 @@ if (dateInput) {
         }
     }
 
-    // 介面切換邏輯
     function handleProcessChange() {
         const type = document.getElementById("rec-process").value;
         const pestBox = document.getElementById("pesticide-inputs");
@@ -328,38 +306,7 @@ if (dateInput) {
             normalBox.style.display = "block";
         }
     }
-
-    // === 頁面載入完成後執行：設定日期限制 (14天) ===
-window.onload = function() {
-    // 1. 抓取正確的 ID (你的 HTML 是 rec-date)
-    const dateInput = document.getElementById('rec-date');
-
-    if (dateInput) {
-        // 2. 設定今天日期 (最大值)
-        const today = new Date();
-        const todayStr = today.toISOString().split('T')[0];
-        
-        // 3. 設定 14 天前的日期 (最小值)
-        const limitDays = 14; 
-        const pastDate = new Date();
-        pastDate.setDate(today.getDate() - limitDays);
-        const minDateStr = pastDate.toISOString().split('T')[0];
-
-        // 4. 套用限制
-        dateInput.max = todayStr;      // 不能選未來
-        dateInput.min = minDateStr;    // 不能選 14 天前
-        dateInput.value = todayStr;    // 預設填入今天
-
-        console.log(`✅ 日期限制啟動：${minDateStr} ~ ${todayStr}`);
-    } else {
-        console.error("❌ 找不到日期輸入框，請檢查 ID 是否為 rec-date");
-    }
-}
 </script>
 
 </body>
 </html>
-
-
-
-
