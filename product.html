@@ -119,8 +119,30 @@
                 document.getElementById('p-photo').src = "https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?w=600";
             }
 
-            // 5. 判斷藥檢狀態 (時間通常是最後一個，假設是 data[4])
+           // ... (上面是顯示名稱、圖片的程式碼) ...
+
+            // 5. 判斷藥檢狀態
+            // 修正點：一定要先定義 'now' (現在時間)，單位是秒
+            const now = Math.floor(Date.now() / 1000);
+            
+            // 讀取區塊鏈上的解鎖時間 (假設是第 5 個欄位 data[4])
             const unlockTime = parseInt(data[4]); 
+            
+            const statusBadge = document.getElementById('p-status');
+
+            // 進行比較
+            if (now < unlockTime) {
+                // 如果 現在時間 小於 解鎖時間 => 代表還在鎖定中
+                const waitDays = ((unlockTime - now) / 86400).toFixed(1);
+                statusBadge.innerHTML = `⛔ 藥檢管制中 (尚需 ${waitDays} 天)`;
+                statusBadge.className = "badge danger";
+            } else {
+                // 已經超過時間 => 安全
+                statusBadge.innerHTML = `✅ 安全可食用`;
+                statusBadge.className = "badge safe";
+            }
+
+            // ... (下面是顯示卡片的程式碼) ...
             
             // ... 後面的 code ...
 
@@ -147,5 +169,6 @@
 
 </body>
 </html>
+
 
 
