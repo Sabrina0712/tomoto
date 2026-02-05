@@ -6,142 +6,260 @@
     <title>產品履歷詳情</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.7.4/web3.min.js"></script>
     <style>
-        body { font-family: 'Microsoft JhengHei', sans-serif; background: #fafafa; padding: 20px; }
-        .card { max-width: 600px; margin: 20px auto; background: white; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); overflow: hidden; }
+        /* --- 基礎設定 --- */
+        body { font-family: 'Microsoft JhengHei', sans-serif; background: #f4f7f6; padding: 20px; color: #333; }
         
-        .product-img { width: 100%; height: 300px; object-fit: cover; background: #eee; }
-        .content { padding: 25px; }
-        
-        h1 { margin: 0 0 10px 0; color: #333; }
-        .badge { display: inline-block; padding: 5px 12px; border-radius: 20px; font-size: 0.9em; font-weight: bold; margin-bottom: 15px; }
-        .safe { background: #e8f5e9; color: #2e7d32; border: 1px solid #4caf50; }
-        .danger { background: #ffebee; color: #c62828; border: 1px solid #ef5350; }
+        /* --- 卡片主體 --- */
+        .card { 
+            max-width: 500px; 
+            margin: 0 auto; 
+            background: white; 
+            border-radius: 16px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08); 
+            overflow: hidden; 
+            padding: 30px;
+        }
 
-        .info-row { display: flex; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
-        .label { color: #666; font-weight: bold; }
+        /* --- 頂部產品資訊 --- */
+        .header-section { text-align: center; margin-bottom: 25px; }
+        .product-icon { width: 100px; height: 100px; object-fit: cover; border-radius: 12px; margin-bottom: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .product-name { font-size: 2em; color: #2e7d32; margin: 5px 0; font-weight: bold; }
+        .farmer-name { color: #666; font-size: 1.1em; }
+
+        /* --- 狀態警告框 --- */
+        .status-box {
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            margin-bottom: 25px;
+            border: 2px solid #ddd;
+        }
+        /* 危險狀態 (紅) */
+        .status-danger { background-color: #ffebee; border-color: #ef5350; color: #c62828; }
+        .status-danger h3 { margin: 0 0 5px 0; font-size: 1.1em; }
         
-        .loading { text-align: center; padding: 50px; font-size: 1.2em; color: #666; }
-        .error-msg { text-align: center; color: red; padding: 20px; }
+        /* 安全狀態 (綠) */
+        .status-safe { background-color: #e8f5e9; border-color: #4caf50; color: #2e7d32; }
+
+        /* --- 資訊格狀排版 --- */
+        .info-grid { display: flex; gap: 15px; margin-bottom: 30px; }
+        .info-item {
+            flex: 1; 
+            background: #f1f8e9;
+            padding: 15px;
+            border-radius: 10px;
+        }
+        .info-label { font-size: 0.85em; color: #777; display: block; margin-bottom: 5px; }
+        .info-value { font-size: 1.1em; font-weight: bold; color: #333; }
+
+        /* --- 生產履歷紀錄 (時間軸核心樣式) --- */
+        .timeline-section { margin-top: 20px; }
+        .timeline-header { font-size: 1.2em; font-weight: bold; margin-bottom: 20px; display: flex; align-items: center; }
+        .timeline-header::before { content: "🌱"; margin-right: 8px; }
+
+        .timeline {
+            position: relative;
+            padding-left: 20px; /* 左邊留空給圓點 */
+            border-left: 3px solid #eee; /* 灰色的直線 */
+            margin-left: 10px;
+        }
+        
+        .timeline-item {
+            position: relative;
+            margin-bottom: 30px;
+            padding-left: 15px;
+        }
+        
+        /* 繪製圓點 */
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -24px; /* 調整圓點位置以對齊直線 */
+            top: 6px;
+            width: 12px;
+            height: 12px;
+            background: #ccc; /* 預設灰色 */
+            border-radius: 50%;
+            border: 2px solid white;
+            box-shadow: 0 0 0 2px #eee;
+        }
+
+        /* 活躍狀態的圓點 (最新一筆) */
+        .timeline-item.active::before {
+            background: #ef5350; /* 紅色 */
+            width: 14px;
+            height: 14px;
+            left: -25px;
+            box-shadow: 0 0 0 3px #ffebee;
+        }
+        /* 安全狀態的圓點 (綠色) */
+        .timeline-item.safe-active::before {
+            background: #4caf50;
+            box-shadow: 0 0 0 3px #e8f5e9;
+        }
+
+        .t-date { font-size: 0.85em; color: #999; margin-bottom: 5px; display: block; }
+        .t-title { font-size: 1.1em; font-weight: bold; color: #444; }
+        .t-desc { font-size: 0.9em; color: #666; margin-top: 3px; }
+
+        /* --- Loading --- */
+        .loading { text-align: center; padding: 50px; color: #666; }
+        .hidden { display: none; }
     </style>
 </head>
 <body>
 
 <div id="loading" class="loading">
-    正在從區塊鏈讀取資料...<br>
-    <small>請稍候</small>
+    正在讀取區塊鏈資料...
 </div>
 
-<div id="product-card" class="card" style="display: none;">
-    <img id="p-photo" class="product-img" src="" alt="產品照片">
-    <div class="content">
-        <div id="p-status" class="badge">檢查中...</div>
-        
-        <h1 id="p-name">--</h1>
-        <p style="color:#888; margin-top:0;">ID: <span id="p-id"></span></p>
+<div id="product-card" class="card hidden">
+    <div class="header-section">
+        <img id="p-photo" class="product-icon" src="" alt="產品">
+        <h1 id="p-name" class="product-name">--</h1>
+        <div class="farmer-name">👨‍🌾 生產者：<span id="p-farmer">--</span></div>
+    </div>
 
-        <div class="info-row">
-            <span class="label">👨‍🌾 生產者</span>
-            <span id="p-farmer">--</span>
+    <div id="status-container" class="status-box">
+        讀取中...
+    </div>
+
+    <div class="info-grid">
+        <div class="info-item">
+            <span class="info-label">產地 Location</span>
+            <div id="p-location" class="info-value">--</div>
         </div>
-        <div class="info-row">
-            <span class="label">📍 產地</span>
-            <span id="p-location">--</span>
+        <div class="info-item">
+            <span class="info-label">批次 ID</span>
+            <div id="p-id" class="info-value">--</div>
         </div>
-        <div class="info-row">
-            <span class="label">📅 資料查詢時間</span>
-            <span id="p-time">剛剛</span>
-        </div>
-        
-        <div style="margin-top:20px; text-align:center;">
-            <a href="index.html" style="color:#2196f3; text-decoration:none;">← 回到首頁</a>
+    </div>
+
+    <div class="timeline-section">
+        <div class="timeline-header">生產履歷紀錄</div>
+        <div class="timeline">
+            
+            <div class="timeline-item">
+                <span class="t-date">2026-01-22</span>
+                <span class="t-title">種植</span>
+                <div class="t-desc">完成幼苗定植作業</div>
+            </div>
+
+            <div class="timeline-item">
+                <span class="t-date">2026-01-23</span>
+                <span class="t-title">施肥</span>
+                <div class="t-desc">使用有機複合肥料</div>
+            </div>
+
+            <div id="timeline-latest" class="timeline-item active">
+                <span id="record-date" class="t-date">--</span>
+                <span id="record-action" class="t-title">讀取中...</span>
+                <div id="record-desc" class="t-desc">--</div>
+            </div>
+
         </div>
     </div>
 </div>
 
 <script>
-    // 1. 設定合約 (必須與農夫端一致)
     const contractAddress = "0xdA79a8FDFf7ff6AD187c679Df7d6519b45b6C52f"; 
-    
-    // 2. 合約 ABI
     const contractABI = [
         {"inputs":[{"internalType":"string","name":"_id","type":"string"}],"name":"getProduct","outputs":[{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"}
     ];
 
     window.onload = async function() {
-        // 3. 從網址取得 ID (例如 product.html?id=P006)
         const urlParams = new URLSearchParams(window.location.search);
         const productId = urlParams.get('id');
 
-        // 如果網址沒帶 ID，顯示錯誤
         if (!productId) {
-            document.getElementById('loading').innerHTML = "❌ 錯誤：網址沒有 ID<br><a href='index.html'>回首頁</a>";
+            document.getElementById('loading').innerHTML = "❌ 網址缺少 ID";
             return;
         }
 
-        // 4. 初始化 Web3
         let web3;
         if (window.ethereum) {
             web3 = new Web3(window.ethereum);
         } else {
-            // 如果是在手機或其他沒裝錢包的環境，建議使用公開節點 (這裡先用 alert 提示)
-            alert("請確保瀏覽器有安裝 MetaMask 或是 Web3 環境");
-            web3 = new Web3(window.ethereum); // 嘗試連線
+            // 公開節點備用 (建議用自己的節點或強制安裝 MetaMask)
+            alert("請確保瀏覽器有安裝 MetaMask");
+            web3 = new Web3(window.ethereum);
         }
 
         const contract = new web3.eth.Contract(contractABI, contractAddress);
 
         try {
-            console.log("正在查詢 ID:", productId);
-            
-            // 呼叫合約
             const data = await contract.methods.getProduct(productId).call();
-            
-            // 檢查是否回傳空值 (如果名字也是空的，代表沒這個產品)
-            if (!data[0]) {
-                throw new Error("區塊鏈上找不到此 ID");
-            }
+            if (!data[0]) throw new Error("無此產品資料");
 
-            // === 關鍵修正區域 ===
-            
-            // 1. 定義時間 (解決 now is not defined 錯誤)
+            // --- 1. 定義變數 ---
             const now = Math.floor(Date.now() / 1000);
-            const unlockTime = parseInt(data[4]); // 區塊鏈回傳的時間戳記
-
-            // 2. 資料填入 (修正欄位對應順序)
+            const unlockTime = parseInt(data[4]);
+            
+            // --- 2. 填入文字資料 ---
             document.getElementById('p-id').innerText = productId;
-            document.getElementById('p-name').innerText = data[0];      // 名稱
-            document.getElementById('p-location').innerText = data[1];  // 產地
-            document.getElementById('p-farmer').innerText = data[2];    // 生產者
+            document.getElementById('p-name').innerText = data[0];
+            document.getElementById('p-location').innerText = data[1];
+            document.getElementById('p-farmer').innerText = data[2];
 
-            // 3. 圖片處理
+            // --- 3. 處理圖片 ---
             if (data[3] && data[3].startsWith('http')) {
                 document.getElementById('p-photo').src = data[3];
             } else {
-                // 預設圖片
-                document.getElementById('p-photo').src = "https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?w=600";
+                document.getElementById('p-photo').src = "https://cdn-icons-png.flaticon.com/512/2909/2909808.png";
             }
 
-            // 4. 藥檢狀態判斷邏輯
-            const statusBadge = document.getElementById('p-status');
+            // --- 4. 處理藥檢狀態與時間軸 ---
+            const statusContainer = document.getElementById('status-container');
+            const timelineLatest = document.getElementById('timeline-latest');
+            const recordAction = document.getElementById('record-action');
+            const recordDesc = document.getElementById('record-desc');
+            const recordDate = document.getElementById('record-date');
+
+            // 設定今天日期
+            const today = new Date().toISOString().split('T')[0];
+            recordDate.innerText = today;
 
             if (now < unlockTime) {
-                // 鎖定中 (危險)
+                // === 危險狀態 (管制中) ===
                 const waitDays = ((unlockTime - now) / 86400).toFixed(1);
-                statusBadge.innerHTML = `⛔ 藥檢管制中 (尚需 ${waitDays} 天)`;
-                statusBadge.className = "badge danger";
+                
+                // 大框框設定
+                statusContainer.className = "status-box status-danger";
+                statusContainer.innerHTML = `
+                    <h3>⛔ 此產品處於藥檢管制期</h3>
+                    <p>還有 ${waitDays} 天才可安全採收</p>
+                `;
+
+                // 時間軸設定 (紅色)
+                timelineLatest.className = "timeline-item active"; // active 對應紅色
+                recordAction.innerText = "施藥：納乃得 (管制中)";
+                recordAction.style.color = "#c62828";
+                recordDesc.innerText = "已上傳藥檢數據至區塊鏈";
+
             } else {
-                // 已解鎖 (安全)
-                statusBadge.innerHTML = `✅ 安全可食用`;
-                statusBadge.className = "badge safe";
+                // === 安全狀態 (可食用) ===
+                
+                // 大框框設定
+                statusContainer.className = "status-box status-safe";
+                statusContainer.innerHTML = `
+                    <h3>✅ 安全可食用</h3>
+                    <p>藥檢期已過，請安心享用</p>
+                `;
+
+                // 時間軸設定 (綠色)
+                timelineLatest.className = "timeline-item safe-active"; // safe-active 對應綠色
+                recordAction.innerText = "檢驗合格 (可採收)";
+                recordAction.style.color = "#2e7d32";
+                recordDesc.innerText = "符合安全採收標準";
             }
 
-            // 5. 顯示卡片，隱藏 Loading
+            // --- 5. 顯示畫面 ---
             document.getElementById('loading').style.display = 'none';
             document.getElementById('product-card').style.display = 'block';
 
         } catch (err) {
             console.error(err);
-            document.getElementById('loading').innerHTML = `<div class='error-msg'>讀取失敗<br>${err.message}</div>`;
+            document.getElementById('loading').innerText = "讀取失敗：" + err.message;
         }
     };
 </script>
