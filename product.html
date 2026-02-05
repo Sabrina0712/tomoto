@@ -35,7 +35,8 @@
     <img id="p-photo" class="product-img" src="" alt="產品照片">
     <div class="content">
         <div id="p-status" class="badge">檢查中...</div>
-        <h1 id="p-name">產品名稱</h1>
+        
+        <h1 id="p-name">--</h1>
         <p style="color:#888; margin-top:0;">ID: <span id="p-id"></span></p>
 
         <div class="info-row">
@@ -47,7 +48,7 @@
             <span id="p-location">--</span>
         </div>
         <div class="info-row">
-            <span class="label">📅 最後更新</span>
+            <span class="label">📅 資料查詢時間</span>
             <span id="p-time">剛剛</span>
         </div>
         
@@ -61,102 +62,80 @@
     // 1. 設定合約 (必須與農夫端一致)
     const contractAddress = "0xdA79a8FDFf7ff6AD187c679Df7d6519b45b6C52f"; 
     
-    // 只需要讀取功能，ABI 比較簡單
+    // 2. 合約 ABI
     const contractABI = [
         {"inputs":[{"internalType":"string","name":"_id","type":"string"}],"name":"getProduct","outputs":[{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"}
     ];
 
     window.onload = async function() {
-        // 2. 從網址取得 ID (例如 product.html?id=P006)
+        // 3. 從網址取得 ID (例如 product.html?id=P006)
         const urlParams = new URLSearchParams(window.location.search);
         const productId = urlParams.get('id');
 
+        // 如果網址沒帶 ID，顯示錯誤
         if (!productId) {
             document.getElementById('loading').innerHTML = "❌ 錯誤：網址沒有 ID<br><a href='index.html'>回首頁</a>";
             return;
         }
 
-        // 3. 連接區塊鏈 (讀取不需要錢包授權，只要有 Web3 即可)
-        // 為了簡單起見，我們直接用公開節點或瀏覽器的 Provider
+        // 4. 初始化 Web3
         let web3;
         if (window.ethereum) {
             web3 = new Web3(window.ethereum);
         } else {
-            // 如果沒裝錢包，可以用公開節點 (這裡先假設有裝)
-            alert("請安裝 MetaMask 以讀取資料");
-            return;
+            // 如果是在手機或其他沒裝錢包的環境，建議使用公開節點 (這裡先用 alert 提示)
+            alert("請確保瀏覽器有安裝 MetaMask 或是 Web3 環境");
+            web3 = new Web3(window.ethereum); // 嘗試連線
         }
 
         const contract = new web3.eth.Contract(contractABI, contractAddress);
 
         try {
             console.log("正在查詢 ID:", productId);
+            
+            // 呼叫合約
             const data = await contract.methods.getProduct(productId).call();
             
-            // data 結構: [0]ID, [1]Name, [2]Location, [3]Farmer, [4]UnlockTime
-            
+            // 檢查是否回傳空值 (如果名字也是空的，代表沒這個產品)
             if (!data[0]) {
                 throw new Error("區塊鏈上找不到此 ID");
             }
 
-            // ... 前面的 code ...
+            // === 關鍵修正區域 ===
+            
+            // 1. 定義時間 (解決 now is not defined 錯誤)
+            const now = Math.floor(Date.now() / 1000);
+            const unlockTime = parseInt(data[4]); // 區塊鏈回傳的時間戳記
 
-            // 4. 顯示資料 (修正後的對應順序)
-            
-            // ID 直接用網址上的參數 (productId)，因為合約回傳的第一個欄位似乎不是 ID
-            document.getElementById('p-id').innerText = productId; 
-            
-            // 根據你的截圖推算的正確順序：
-            document.getElementById('p-name').innerText = data[0];     // 0 是 名稱 (原本錯放到ID)
-            document.getElementById('p-location').innerText = data[1]; // 1 是 產地 (原本錯放到標題)
-            document.getElementById('p-farmer').innerText = data[2];   // 2 是 生產者
-            
-            // 處理照片 (讀取 data[3])
-            // 如果 data[3] 有值就用它，沒有就用預設圖
+            // 2. 資料填入 (修正欄位對應順序)
+            document.getElementById('p-id').innerText = productId;
+            document.getElementById('p-name').innerText = data[0];      // 名稱
+            document.getElementById('p-location').innerText = data[1];  // 產地
+            document.getElementById('p-farmer').innerText = data[2];    // 生產者
+
+            // 3. 圖片處理
             if (data[3] && data[3].startsWith('http')) {
                 document.getElementById('p-photo').src = data[3];
             } else {
+                // 預設圖片
                 document.getElementById('p-photo').src = "https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?w=600";
             }
 
-           // ... (上面是顯示名稱、圖片的程式碼) ...
-
-            // 5. 判斷藥檢狀態
-            // 修正點：一定要先定義 'now' (現在時間)，單位是秒
-            const now = Math.floor(Date.now() / 1000);
-            
-            // 讀取區塊鏈上的解鎖時間 (假設是第 5 個欄位 data[4])
-            const unlockTime = parseInt(data[4]); 
-            
+            // 4. 藥檢狀態判斷邏輯
             const statusBadge = document.getElementById('p-status');
 
-            // 進行比較
             if (now < unlockTime) {
-                // 如果 現在時間 小於 解鎖時間 => 代表還在鎖定中
+                // 鎖定中 (危險)
                 const waitDays = ((unlockTime - now) / 86400).toFixed(1);
                 statusBadge.innerHTML = `⛔ 藥檢管制中 (尚需 ${waitDays} 天)`;
                 statusBadge.className = "badge danger";
             } else {
-                // 已經超過時間 => 安全
+                // 已解鎖 (安全)
                 statusBadge.innerHTML = `✅ 安全可食用`;
                 statusBadge.className = "badge safe";
             }
 
-            // ... (下面是顯示卡片的程式碼) ...
-            
-            // ... 後面的 code ...
-
-            if (now < unlockTime) {
-                const waitDays = ((unlockTime - now) / 86400).toFixed(1);
-                statusBadge.innerHTML = `⛔ 藥檢管制中 (尚需 ${waitDays} 天)`;
-                statusBadge.className = "badge danger";
-            } else {
-                statusBadge.innerHTML = `✅ 安全可食用`;
-                statusBadge.className = "badge safe";
-            }
-                const now = Math.floor(Date.now() / 1000); 
-
-            // 切換顯示
+            // 5. 顯示卡片，隱藏 Loading
             document.getElementById('loading').style.display = 'none';
             document.getElementById('product-card').style.display = 'block';
 
@@ -169,6 +148,3 @@
 
 </body>
 </html>
-
-
-
