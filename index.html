@@ -3,165 +3,269 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🥬 產品履歷查詢 - V6</title>
+    <title>👨‍🌾 全歷程生產履歷 - V7</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.7.4/web3.min.js"></script>
     <style>
-        /* === 沿用農夫端的綠色風格 === */
+        /* === 樣式保持原樣，針對列表優化 === */
         body { font-family: 'Microsoft JhengHei', sans-serif; background: #f1f8e9; padding: 20px; color: #333; }
-        .container { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         
-        h1 { text-align: center; color: #2e7d32; margin-bottom: 20px; }
+        h1 { text-align: center; color: #2e7d32; margin-bottom: 10px; }
+        .wallet-bar { text-align: center; margin-bottom: 30px; }
+        .status-badge { background: #ffebee; color: #c62828; padding: 8px 15px; border-radius: 20px; font-weight: bold; display: inline-block; }
+        .status-badge.connected { background: #e8f5e9; color: #2e7d32; }
 
-        /* 查詢區塊 */
-        .search-box { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 20px; }
-        input { flex: 1; padding: 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 16px; outline: none; }
-        input:focus { border-color: #4caf50; }
+        h3 { border-left: 5px solid #4caf50; padding-left: 12px; color: #388e3c; margin-top: 40px; }
         
-        button { padding: 12px 25px; background: #2e7d32; color: white; border: none; border-radius: 6px; font-size: 16px; cursor: pointer; transition: 0.3s; font-weight: bold; }
-        button:hover { background: #1b5e20; }
-
-        /* 結果顯示區 */
-        #result-area { display: none; animation: fadeIn 0.5s; }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .full-width { grid-column: span 2; }
         
-        /* 圖片 */
-        .product-img { width: 100%; max-height: 250px; object-fit: cover; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); background-color: #f5f5f5; }
+        label { display: block; margin: 8px 0 5px; font-weight: bold; color: #555; }
+        input, select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; }
+        
+        button { width: 100%; padding: 12px; margin-top: 15px; border: none; border-radius: 6px; font-size: 16px; cursor: pointer; transition: 0.3s; }
+        .btn-green { background: #2e7d32; color: white; }
+        .btn-blue { background: #1565c0; color: white; }
+        .btn-orange { background: #f57c00; color: white; }
 
-        /* 資料欄位樣式 */
-        .info-row { margin-bottom: 12px; font-size: 1.1em; border-bottom: 1px dashed #eee; padding-bottom: 8px; }
-        .label { color: #2e7d32; font-weight: bold; display: inline-block; width: 90px; }
-        .value { color: #333; font-weight: 500; }
+        /* 時間軸樣式 */
+        .result-box { margin-top: 20px; padding: 25px; background: white; border-radius: 12px; display: none; border: 1px solid #e0e0e0; }
+        .product-header { display: flex; gap: 20px; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 20px; }
+        .product-img { width: 100px; height: 100px; object-fit: cover; border-radius: 10px; background: #eee; }
 
-        /* 最新狀態區塊 (物流/施藥) */
-        .status-card { 
-            background: #e8f5e9; /* 淺綠底色 */
-            border: 2px solid #4caf50; 
-            padding: 15px; 
-            border-radius: 8px; 
-            margin-top: 20px; 
+        .timeline { position: relative; padding-left: 30px; margin-top: 20px; list-style: none; }
+        .timeline:before { content: ''; position: absolute; left: 6px; top: 0; bottom: 0; width: 2px; background: #e0e0e0; }
+        
+        .timeline-item { position: relative; margin-bottom: 30px; }
+        .timeline-dot { 
+            position: absolute; left: -31px; top: 0; 
+            width: 14px; height: 14px; border-radius: 50%; 
+            background: #bdbdbd; border: 3px solid white; 
+            box-shadow: 0 0 0 2px #e0e0e0; 
         }
-        .status-header { font-weight: bold; color: #1b5e20; border-bottom: 1px solid #a5d6a7; padding-bottom: 5px; margin-bottom: 10px; display: flex; justify-content: space-between; }
-        
-        /* 安全狀態標籤 */
-        .badge { display: block; text-align: center; padding: 10px; border-radius: 50px; margin-top: 20px; font-weight: bold; color: white; }
-        .badge-safe { background: #4caf50; }
-        .badge-danger { background: #d32f2f; }
 
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        /* 不同動作的顏色 */
+        .t-plant .timeline-dot { background: #8d6e63; box-shadow: 0 0 0 3px #d7ccc8; } /* 種植-咖啡色 */
+        .t-fert .timeline-dot { background: #ffca28; box-shadow: 0 0 0 3px #ffecb3; } /* 施肥-黃色 */
+        .t-pest .timeline-dot { background: #ef5350; box-shadow: 0 0 0 3px #ffcdd2; } /* 施藥-紅色 */
+        .t-harvest .timeline-dot { background: #66bb6a; box-shadow: 0 0 0 3px #c8e6c9; } /* 採收-綠色 */
+        .t-logistics .timeline-dot { background: #42a5f5; box-shadow: 0 0 0 3px #bbdefb; } /* 物流-藍色 */
+
+        .timeline-date { font-size: 0.85em; color: #888; margin-bottom: 4px; }
+        .timeline-title { font-weight: bold; font-size: 1.1em; color: #333; }
+        .timeline-desc { font-size: 0.95em; color: #666; margin-top: 4px; background: #f9f9f9; padding: 8px; border-radius: 6px; display: inline-block;}
+        
+        .pesticide-box { display: none; background: #ffebee; border: 2px solid #ef5350; padding: 20px; border-radius: 8px; margin-top: 15px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>🔍 產品履歷查詢</h1>
-
-    <div class="search-box">
-        <input type="text" id="query-id" placeholder="請輸入產品 ID (例如: P005)">
-        <button onclick="searchProduct()">查詢</button>
+    <h1>👨‍🌾 農夫生產管理 - 全歷程 (V7)</h1>
+    
+    <div class="wallet-bar">
+        <span id="wallet-status" class="status-badge">🔴 錢包未連線</span>
+        <button onclick="checkConnection()" style="width: auto; padding: 5px 15px; margin-left: 10px;">🔗 連線錢包</button>
     </div>
 
-    <div id="result-area">
-        
-        <img id="d-photo" class="product-img" src="" onerror="this.style.display='none'">
-
-        <h2 id="d-name" style="text-align:center; color:#333; margin-top:0;"></h2>
-        
-        <div class="info-row">
-            <span class="label">👨‍🌾 生產者:</span> 
-            <span id="d-farmer" class="value"></span>
-        </div>
-        <div class="info-row">
-            <span class="label">📍 產地:</span> 
-            <span id="d-location" class="value"></span>
-        </div>
-
-        <div class="status-card">
-            <div class="status-header">
-                <span>🚚 最新動態 / 物流</span>
-                <span id="d-date" style="font-size:0.9em; opacity:0.8;"></span>
-            </div>
-            <div style="font-size: 1.2em; font-weight: bold; color: #2e7d32; margin-bottom: 5px;" id="d-action"></div>
-            <div style="color: #555; font-size: 0.95em;" id="d-note"></div>
-        </div>
-
-        <div id="safety-badge" class="badge"></div>
-
+    <h3>1. 註冊新產品</h3>
+    <div class="form-grid">
+        <div><label>產品 ID</label><input type="text" id="p-id" placeholder="P001"></div>
+        <div><label>產品名稱</label><input type="text" id="p-name" placeholder="玉女番茄"></div>
+        <div><label>產地</label><input type="text" id="p-location" value="嘉義太保"></div>
+        <div><label>生產者</label><input type="text" id="p-farmer" value="陳大農"></div>
+        <div class="full-width"><label>照片連結</label><input type="text" id="p-photo" placeholder="https://..."></div>
     </div>
+    <button class="btn-green" onclick="registerProduct()">✅ 註冊產品</button>
+
+    <h3>2. 新增紀錄 (會一直疊加)</h3>
+    <div class="form-grid">
+        <div class="full-width"><label>產品 ID</label><input type="text" id="rec-id"></div>
+        <div>
+            <label>作業種類</label>
+            <select id="rec-process" onchange="handleProcessChange()">
+                <option value="種植">🌱 種植</option>
+                <option value="施肥">💩 施肥</option>
+                <option value="施藥">☠️ 施藥</option>
+                <option value="採收">🌾 採收</option>
+                <option value="物流">🚚 物流出貨</option>
+            </select>
+        </div>
+        <div><label>日期</label><input type="date" id="rec-date"></div>
+    </div>
+
+    <div id="normal-inputs" style="margin-top: 15px;">
+        <label>詳細內容</label><input type="text" id="rec-detail" placeholder="例如: 使用有機肥">
+    </div>
+
+    <div id="pesticide-inputs" class="pesticide-box">
+        <h4 style="margin:0 0 10px 0; color:#c62828;">⚠️ 施藥資料</h4>
+        <div class="form-grid">
+            <div><label>藥名</label><input type="text" id="pest-name"></div>
+            <div><label>PHI (天)</label><input type="number" id="pest-phi" placeholder="安全採收期"></div>
+        </div>
+    </div>
+
+    <div style="margin-top:15px;"><label>備註</label><input type="text" id="rec-note"></div>
+    <button class="btn-blue" onclick="addRecord()">➕ 新增紀錄</button>
+
+    <h3>3. 完整履歷查詢</h3>
+    <div style="display:flex; gap:10px;">
+        <input type="text" id="query-id" placeholder="輸入 ID 查詢完整流程">
+        <button class="btn-orange" style="width: 150px;" onclick="checkHistory()">🔍 查詢歷史</button>
+    </div>
+    
+    <div id="result-box" class="result-box"></div>
 </div>
 
 <script>
-    // ▼▼▼ 合約地址 (V6) ▼▼▼
-    const contractAddress = "0x786b118e72075f6a3b7d5E7Db8C6F78933494298"; 
-    // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+    // ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
+    // 請填入你剛剛部署的 V7 合約地址
+    const contractAddress = "YOUR_V7_CONTRACT_ADDRESS_HERE"; 
+    // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
     const contractABI = [
-        {"inputs":[{"internalType":"string","name":"_id","type":"string"}],"name":"getProduct","outputs":[{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"uint256","name":"","type":"uint256"},{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"}
+        {"inputs":[{"internalType":"string","name":"_id","type":"string"},{"internalType":"string","name":"_name","type":"string"},{"internalType":"string","name":"_location","type":"string"},{"internalType":"string","name":"_farmer","type":"string"},{"internalType":"string","name":"_photoUrl","type":"string"}],"name":"registerProduct","outputs":[],"stateMutability":"nonpayable","type":"function"},
+        {"inputs":[{"internalType":"string","name":"_id","type":"string"},{"internalType":"string","name":"_date","type":"string"},{"internalType":"string","name":"_action","type":"string"},{"internalType":"string","name":"_note","type":"string"},{"internalType":"uint256","name":"_phi","type":"uint256"},{"internalType":"uint256","name":"_dateTimestamp","type":"uint256"}],"name":"addHistory","outputs":[],"stateMutability":"nonpayable","type":"function"},
+        {"inputs":[{"internalType":"string","name":"_id","type":"string"}],"name":"getProductInfo","outputs":[{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},
+        {"inputs":[{"internalType":"string","name":"_id","type":"string"}],"name":"getProductHistory","outputs":[{"components":[{"internalType":"string","name":"date","type":"string"},{"internalType":"string","name":"action","type":"string"},{"internalType":"string","name":"note","type":"string"},{"internalType":"uint256","name":"phi","type":"uint256"},{"internalType":"uint256","name":"timestamp","type":"uint256"}],"internalType":"struct AgroChainV7.Record[]","name":"","type":"tuple[]"}],"stateMutability":"view","type":"function"}
     ];
 
-    async function searchProduct() {
-        const id = document.getElementById("query-id").value.trim();
-        if(!id) return alert("請輸入 ID");
+    let web3, contract;
 
-        if (typeof window.ethereum === 'undefined') {
-            alert("請使用安裝有 MetaMask 的瀏覽器");
-            return;
+    async function checkConnection() {
+        if (window.ethereum) {
+            web3 = new Web3(window.ethereum);
+            await window.ethereum.request({ method: 'eth_requestAccounts' });
+            const accounts = await web3.eth.getAccounts();
+            contract = new web3.eth.Contract(contractABI, contractAddress);
+            document.getElementById('wallet-status').innerText = "🟢 已連線";
+            document.getElementById('wallet-status').className = "status-badge connected";
+            return true;
+        } else {
+            alert("請安裝 MetaMask");
+            return false;
         }
+    }
 
-        const web3 = new Web3(window.ethereum);
-        const contract = new web3.eth.Contract(contractABI, contractAddress);
+    async function registerProduct() {
+        if (!await checkConnection()) return;
+        const id = document.getElementById("p-id").value;
+        const name = document.getElementById("p-name").value;
+        const location = document.getElementById("p-location").value;
+        const farmer = document.getElementById("p-farmer").value;
+        const photo = document.getElementById("p-photo").value;
+        const accounts = await web3.eth.getAccounts();
+        
+        try {
+            await contract.methods.registerProduct(id, name, location, farmer, photo).send({ from: accounts[0] });
+            alert("註冊成功！");
+        } catch(e) { alert("失敗: " + e.message); }
+    }
+
+    async function addRecord() {
+        if (!await checkConnection()) return;
+        const id = document.getElementById("rec-id").value;
+        const type = document.getElementById("rec-process").value;
+        const date = document.getElementById("rec-date").value;
+        const noteRaw = document.getElementById("rec-note").value;
+        
+        let actionStr = "", phi = 0;
+        if (type === "施藥") {
+            const pName = document.getElementById("pest-name").value;
+            const pPhi = document.getElementById("pest-phi").value;
+            actionStr = `施藥: ${pName}`;
+            phi = parseInt(pPhi);
+        } else {
+            const detail = document.getElementById("rec-detail").value;
+            actionStr = `${type}: ${detail}`;
+        }
+        
+        const timestamp = Math.floor(new Date(date).getTime() / 1000);
+        const accounts = await web3.eth.getAccounts();
 
         try {
-            // 讀取區塊鏈資料
-            const p = await contract.methods.getProduct(id).call();
+            await contract.methods.addHistory(id, date, actionStr, noteRaw, phi, timestamp).send({ from: accounts[0] });
+            alert("紀錄新增成功！");
+        } catch(e) { alert("失敗: " + e.message); }
+    }
 
-            // 如果沒有名稱，代表 ID 不存在
-            if (!p[0]) {
-                alert("❌ 查無此 ID 資料");
-                document.getElementById("result-area").style.display = "none";
-                return;
-            }
-
-            // 顯示結果區
-            document.getElementById("result-area").style.display = "block";
-
-            // === A. 填入農夫基本資料 ===
-            document.getElementById("d-name").innerText = p[0];
-            document.getElementById("d-farmer").innerText = p[2];
-            document.getElementById("d-location").innerText = p[1];
+    // 🔥 核心修改：讀取並顯示所有歷史紀錄
+    async function checkHistory() {
+        if (!await checkConnection()) return;
+        const id = document.getElementById("query-id").value;
+        const box = document.getElementById("result-box");
+        
+        try {
+            // 1. 抓基本資料
+            const info = await contract.methods.getProductInfo(id).call();
+            // 2. 抓歷史列表 (Array)
+            const history = await contract.methods.getProductHistory(id).call();
             
-            // 圖片處理
-            const img = document.getElementById("d-photo");
-            if(p[3] && p[3].startsWith("http")) {
-                img.src = p[3];
-                img.style.display = "block";
-            } else {
-                img.style.display = "none";
-            }
+            // 如果沒資料
+            if (!info[0]) return alert("查無此 ID");
+            
+            box.style.display = "block";
 
-            // === B. 填入最新狀態 (物流/動作) ===
-            // p[5]: 動作名稱 (例如: "運送中: 前往集貨中心")
-            // p[6]: 備註 (例如: "車號 ABC-1234")
-            // p[7]: 日期 (例如: "2023-10-27")
-            document.getElementById("d-action").innerText = p[5]; 
-            document.getElementById("d-note").innerText = p[6] ? "備註: " + p[6] : "無備註";
-            document.getElementById("d-date").innerText = p[7];
+            // 組合基本資料 HTML
+            let html = `
+                <div class="product-header">
+                    <img src="${info[3]}" class="product-img" onerror="this.src='https://via.placeholder.com/100'">
+                    <div>
+                        <h2 style="margin:0; color:#2e7d32;">${info[0]}</h2>
+                        <p>生產者: ${info[2]}</p>
+                        <p>產地: ${info[1]}</p>
+                    </div>
+                </div>
+                <ul class="timeline">
+                    <li class="timeline-item">
+                        <div class="timeline-dot"></div>
+                        <div class="timeline-date">---</div>
+                        <div class="timeline-title">📝 產品註冊</div>
+                        <div class="timeline-desc">建立履歷檔案</div>
+                    </li>
+            `;
 
-            // === C. 藥檢安全計算 ===
-            const unlockTime = parseInt(p[4]);
-            const now = Math.floor(Date.now() / 1000);
-            const badge = document.getElementById("safety-badge");
+            // 用迴圈 (Loop) 把每一筆歷史紀錄加進去
+            // 先對 history 按時間排序 (以免區塊鏈回傳順序亂掉，雖通常不會)
+            // history 是 Solidity struct array, 轉成 JS array
+            
+            history.forEach(rec => {
+                // 根據動作判斷顏色樣式
+                let cssClass = "";
+                if(rec.action.includes("種植")) cssClass = "t-plant";
+                else if(rec.action.includes("施肥")) cssClass = "t-fert";
+                else if(rec.action.includes("施藥")) cssClass = "t-pest";
+                else if(rec.action.includes("採收")) cssClass = "t-harvest";
+                else if(rec.action.includes("物流")) cssClass = "t-logistics";
 
-            if (now < unlockTime) {
-                const waitDays = ((unlockTime - now) / 86400).toFixed(1);
-                badge.className = "badge badge-danger";
-                badge.innerHTML = `⛔ 藥檢管制中 (還需 ${waitDays} 天)`;
-            } else {
-                badge.className = "badge badge-safe";
-                badge.innerHTML = `✅ 安全可食用 / 允許出貨`;
-            }
+                html += `
+                    <li class="timeline-item ${cssClass}">
+                        <div class="timeline-dot"></div>
+                        <div class="timeline-date">${rec.date}</div>
+                        <div class="timeline-title">${rec.action}</div>
+                        <div class="timeline-desc">${rec.note || "無備註"}</div>
+                    </li>
+                `;
+            });
 
-        } catch (err) {
-            console.error(err);
-            alert("讀取失敗，請確認 ID 是否正確");
+            html += `</ul>`;
+            box.innerHTML = html;
+
+        } catch(e) {
+            console.error(e);
+            alert("查詢錯誤，請確認 ID 是否正確");
+        }
+    }
+
+    function handleProcessChange() {
+        const type = document.getElementById("rec-process").value;
+        if (type === "施藥") {
+            document.getElementById("pesticide-inputs").style.display = "block";
+            document.getElementById("normal-inputs").style.display = "none";
+        } else {
+            document.getElementById("pesticide-inputs").style.display = "none";
+            document.getElementById("normal-inputs").style.display = "block";
         }
     }
 </script>
