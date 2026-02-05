@@ -329,12 +329,35 @@ if (dateInput) {
         }
     }
 
-    // 頁面載入時自動設定日期為今天
-    window.onload = function() {
-        document.getElementById('rec-date').valueAsDate = new Date();
+    // === 頁面載入完成後執行：設定日期限制 (14天) ===
+window.onload = function() {
+    // 1. 抓取正確的 ID (你的 HTML 是 rec-date)
+    const dateInput = document.getElementById('rec-date');
+
+    if (dateInput) {
+        // 2. 設定今天日期 (最大值)
+        const today = new Date();
+        const todayStr = today.toISOString().split('T')[0];
+        
+        // 3. 設定 14 天前的日期 (最小值)
+        const limitDays = 14; 
+        const pastDate = new Date();
+        pastDate.setDate(today.getDate() - limitDays);
+        const minDateStr = pastDate.toISOString().split('T')[0];
+
+        // 4. 套用限制
+        dateInput.max = todayStr;      // 不能選未來
+        dateInput.min = minDateStr;    // 不能選 14 天前
+        dateInput.value = todayStr;    // 預設填入今天
+
+        console.log(`✅ 日期限制啟動：${minDateStr} ~ ${todayStr}`);
+    } else {
+        console.error("❌ 找不到日期輸入框，請檢查 ID 是否為 rec-date");
     }
+}
 </script>
 
 </body>
 </html>
+
 
