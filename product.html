@@ -99,21 +99,30 @@
                 throw new Error("區塊鏈上找不到此 ID");
             }
 
-            // 4. 顯示資料
-            document.getElementById('p-id').innerText = data[0];
-            document.getElementById('p-name').innerText = data[1];
-            document.getElementById('p-location').innerText = data[2];
-            document.getElementById('p-farmer').innerText = data[3];
-            
-            // 處理照片 (如果沒照片就給個預設圖)
-            // 假設 data[4] 是時間，那照片呢？
-            // 如果你的合約把照片存在別的地方，這裡可能需要調整，暫時用預設圖
-            document.getElementById('p-photo').src = "https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?w=600"; 
+            // ... 前面的 code ...
 
-            // 5. 判斷藥檢狀態
-            const unlockTime = parseInt(data[4]); // 假設第4個欄位是時間戳
-            const now = Math.floor(Date.now() / 1000);
-            const statusBadge = document.getElementById('p-status');
+            // 4. 顯示資料 (修正後的對應順序)
+            
+            // ID 直接用網址上的參數 (productId)，因為合約回傳的第一個欄位似乎不是 ID
+            document.getElementById('p-id').innerText = productId; 
+            
+            // 根據你的截圖推算的正確順序：
+            document.getElementById('p-name').innerText = data[0];     // 0 是 名稱 (原本錯放到ID)
+            document.getElementById('p-location').innerText = data[1]; // 1 是 產地 (原本錯放到標題)
+            document.getElementById('p-farmer').innerText = data[2];   // 2 是 生產者
+            
+            // 處理照片 (讀取 data[3])
+            // 如果 data[3] 有值就用它，沒有就用預設圖
+            if (data[3] && data[3].startsWith('http')) {
+                document.getElementById('p-photo').src = data[3];
+            } else {
+                document.getElementById('p-photo').src = "https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?w=600";
+            }
+
+            // 5. 判斷藥檢狀態 (時間通常是最後一個，假設是 data[4])
+            const unlockTime = parseInt(data[4]); 
+            
+            // ... 後面的 code ...
 
             if (now < unlockTime) {
                 const waitDays = ((unlockTime - now) / 86400).toFixed(1);
@@ -137,3 +146,4 @@
 
 </body>
 </html>
+
