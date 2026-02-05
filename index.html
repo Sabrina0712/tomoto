@@ -3,182 +3,171 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>荷葉安心農產履歷平台</title>
+    <title>產品履歷查詢 - AgriTrace</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.7.4/web3.min.js"></script>
     <style>
-        body {
-            font-family: 'Microsoft JhengHei', -apple-system, BlinkMacSystemFont, sans-serif;
-            background-color: #f4f6f8;
-            margin: 0;
-            padding: 0;
+        body { font-family: 'Microsoft JhengHei', sans-serif; background: #f0f2f5; margin: 0; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 40px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        
+        /* 上半部：搜尋區 (維持原樣) */
+        h1 { text-align: center; color: #2c3e50; margin-bottom: 30px; }
+        .search-box { display: flex; gap: 10px; margin-bottom: 30px; }
+        input { flex: 1; padding: 15px; border: 2px solid #ddd; border-radius: 50px; font-size: 16px; outline: none; transition: 0.3s; }
+        input:focus { border-color: #3498db; }
+        button { padding: 15px 30px; background: #3498db; color: white; border: none; border-radius: 50px; font-size: 16px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        button:hover { background: #2980b9; transform: scale(1.05); }
+
+        /* 下半部：資料顯示區 (幫你改成動態讀取) */
+        #result-area { display: none; animation: fadeIn 0.5s; }
+        
+        .product-card { text-align: center; margin-bottom: 25px; }
+        .product-img { width: 100%; max-height: 300px; object-fit: cover; border-radius: 15px; margin-bottom: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        
+        .info-group { text-align: left; padding: 15px; background: #f8f9fa; border-radius: 10px; margin-bottom: 10px; border-left: 5px solid #bdc3c7; }
+        .info-label { color: #7f8c8d; font-size: 0.9em; margin-bottom: 5px; }
+        .info-value { color: #2c3e50; font-weight: bold; font-size: 1.1em; }
+
+        /* 物流與狀態專用樣式 */
+        .status-card { 
+            background: #e3f2fd; 
+            border: 2px solid #2196f3; 
+            padding: 20px; 
+            border-radius: 12px; 
+            margin-top: 20px; 
+            text-align: left;
         }
+        .status-title { font-weight: bold; color: #1565c0; margin-bottom: 10px; display: flex; align-items: center; }
+        .status-date { float: right; font-size: 0.8em; color: #555; background: white; padding: 2px 8px; border-radius: 10px; }
+        
+        /* 藥檢警示 */
+        .safe-badge { background: #d4edda; color: #155724; padding: 10px; border-radius: 8px; text-align: center; font-weight: bold; margin-top: 20px; }
+        .warning-badge { background: #f8d7da; color: #721c24; padding: 10px; border-radius: 8px; text-align: center; font-weight: bold; margin-top: 20px; border: 2px solid #f5c6cb; }
 
-        /* 1. 頂部大區塊 (綠色背景) - 已變矮 */
-        .hero-section {
-            background-color: #00c6a9;
-            background: linear-gradient(135deg, #00c6a9 0%, #00b09b 100%);
-            /* ▼ 修改：減少上下留白，讓綠色區塊變矮 */
-            padding: 40px 20px 50px 20px; 
-            text-align: center;
-            color: white;
-            border-bottom-left-radius: 30px;
-            border-bottom-right-radius: 30px;
-            box-shadow: 0 4px 15px rgba(0, 198, 169, 0.2);
-        }
-
-        /* 標題樣式 - 已變小 */
-        .main-title {
-            /* ▼ 修改：字體從 2.2em 改小為 1.6em */
-            font-size: 1.6em; 
-            font-weight: bold;
-            margin: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-
-        .sub-title {
-            margin-top: 10px;
-            font-size: 1em; /* 也稍微改小一點 */
-            opacity: 0.9;
-            font-weight: normal;
-            letter-spacing: 1px;
-        }
-
-        /* 2. 搜尋框 */
-        .search-wrapper {
-            background: white;
-            max-width: 650px;
-            margin: 20px auto 0 auto; /* 上方間距稍微縮小 */
-            border-radius: 50px;
-            padding: 5px 5px 5px 20px; /* 稍微縮小內距 */
-            display: flex;
-            align-items: center;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        }
-
-        .search-input {
-            border: none;
-            flex: 1;
-            font-size: 1em;
-            outline: none;
-            color: #555;
-            padding: 5px;
-            background: transparent;
-        }
-
-        .search-input::placeholder { color: #999; }
-
-        .search-btn {
-            background-color: #00bfa5;
-            color: white;
-            border: none;
-            border-radius: 40px;
-            padding: 10px 30px; /* 按鈕也稍微縮小 */
-            font-size: 0.95em;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.2s;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-
-        .search-btn:hover {
-            background-color: #009688;
-            transform: translateY(-1px);
-        }
-
-        /* 3. 下方產品列表 - 已拉開距離 */
-        .content-container {
-            max-width: 800px;
-            /* ▼ 修改：原本是 -40px (重疊)，現在改成正 30px (分開) */
-            margin: 30px auto 50px auto; 
-            padding: 0 20px;
-        }
-
-        .section-label {
-            text-align: center;
-            color: #555;
-            font-weight: bold;
-            margin-bottom: 20px;
-            font-size: 1.2em;
-        }
-
-        .card {
-            background: white;
-            border-radius: 15px;
-            padding: 15px 20px;
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-            text-decoration: none;
-            color: inherit;
-            transition: transform 0.2s;
-        }
-        .card:hover { transform: translateY(-3px); }
-        .card img { width: 70px; height: 70px; border-radius: 10px; object-fit: cover; margin-right: 20px; background: #eee; }
-        .card h3 { margin: 0 0 5px 0; font-size: 1.1em; color: #333; }
-        .card p { margin: 0; color: #777; font-size: 0.9em; }
-
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
 
-    <div class="hero-section">
-        <h1 class="main-title">
-            🔍 荷葉安心農產履歷平台
-        </h1>
-        <div class="sub-title">輸入產品批號或關鍵字查詢</div>
+<div class="container">
+    <h1>🔍 產銷履歷查詢</h1>
+    
+    <div class="search-box">
+        <input type="text" id="search-id" placeholder="請輸入產品 ID (例如 P005)">
+        <button onclick="searchProduct()">查詢</button>
+    </div>
 
-        <div class="search-wrapper">
-            <input type="text" id="keyword" class="search-input" placeholder="請輸入產品批號 (例如: P005)...">
-            <button onclick="goSearch()" class="search-btn">搜尋</button>
+    <div id="result-area">
+        <div class="product-card">
+            <img id="d-photo" class="product-img" src="" onerror="this.style.display='none'">
+            <h2 id="d-name" style="margin: 10px 0;"></h2>
         </div>
-    </div>
 
-    <div class="content-container">
-        <div class="section-label">🔥 最新上架農產</div>
+        <div class="info-group" style="border-left-color: #2ecc71;">
+            <div class="info-label">👨‍🌾 生產者 (Farmer)</div>
+            <div id="d-farmer" class="info-value"></div>
+        </div>
 
-        <a href="product.html?id=P002" class="card">
-            <img src="https://i.epochtimes.com/assets/uploads/2022/01/id13488691-Fotolia_81632784_Subscription_L.jpg" alt="香蕉">
-            <div>
-                <h3>香蕉 (Banana)</h3>
-                <p>批號：P005 | 生產者：闔家家</p>
+        <div class="info-group" style="border-left-color: #f1c40f;">
+            <div class="info-label">📍產地 (Location)</div>
+            <div id="d-location" class="info-value"></div>
+        </div>
+
+        <div class="status-card">
+            <div class="status-title">
+                📢 最新狀態 / 物流資訊
+                <span id="d-date" class="status-date"></span>
             </div>
-        </a>
+            <div id="d-action" style="font-size: 1.2em; font-weight: bold; color: #333;"></div>
+            <div id="d-note" style="margin-top: 5px; color: #666; font-size: 0.95em;"></div>
+        </div>
 
+        <div id="safety-box"></div>
     </div>
+</div>
 
-    <script>
-        function goSearch() {
-            let input = document.getElementById('keyword').value.trim();
+<script>
+    // ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
+    // 關鍵：請確認這裡也是填入 V6 的合約地址
+    const contractAddress = "0x786b118e72075f6a3b7d5E7Db8C6F78933494298"; 
+    // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+
+    // V6 的 ABI
+    const contractABI = [
+        {"inputs":[{"internalType":"string","name":"_id","type":"string"}],"name":"getProduct","outputs":[{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"uint256","name":"","type":"uint256"},{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"}
+    ];
+
+    // 初始化 Web3 (使用公開節點，讓消費者不用安裝 MetaMask 也能看)
+    // 如果這裡報錯，可以改回 window.ethereum
+    const web3 = new Web3(new Web3.providers.HttpProvider("https://sepolia.infura.io/v3/你的INFURA_KEY")); 
+    // ⚠️ 簡單起見，我們直接用使用者瀏覽器的 MetaMask (如果有) 或者直接嘗試連線
+    // 為了確保你能用，我們先用最簡單的 window.ethereum 模式
+    
+    async function searchProduct() {
+        const id = document.getElementById('search-id').value.trim();
+        if(!id) return alert("請輸入 ID");
+
+        // 檢查使用者有沒有 Web3 環境
+        let tempWeb3;
+        if (window.ethereum) {
+            tempWeb3 = new Web3(window.ethereum);
+        } else {
+            alert("⚠️ 為了讀取區塊鏈資料，請使用安裝有 MetaMask 的瀏覽器，或手機錢包 App 開啟此頁面。");
+            return;
+        }
+
+        const contract = new tempWeb3.eth.Contract(contractABI, contractAddress);
+        
+        try {
+            // 讀取資料
+            const p = await contract.methods.getProduct(id).call();
             
-            if (!input) {
-                alert("請輸入搜尋內容！");
+            // p[0]: Name, p[1]: Location, p[2]: Farmer, p[3]: Photo
+            // p[4]: UnlockTime, p[5]: LastAction, p[6]: LastNote, p[7]: LastDate
+
+            if (!p[0]) {
+                alert("❌ 查無此產品 ID，請確認是否輸入正確。");
                 return;
             }
 
-            if (input === "香蕉" || input === "banana") {
-                input = "P005";
-            } else if (input === "番茄") {
-                input = "P005";
+            // 填入資料
+            document.getElementById('result-area').style.display = 'block';
+            
+            document.getElementById('d-name').innerText = p[0];
+            document.getElementById('d-farmer').innerText = p[2];
+            document.getElementById('d-location').innerText = p[1];
+            
+            // 圖片處理
+            const img = document.getElementById('d-photo');
+            if(p[3] && (p[3].startsWith('http'))) {
+                img.src = p[3];
+                img.style.display = 'block';
+            } else {
+                img.style.display = 'none';
             }
 
-            window.location.href = `product.html?id=${input}`;
+            // 🔥 更新最新狀態 (包含物流資訊)
+            document.getElementById('d-action').innerText = p[5]; // 動作 (例如：物流收件)
+            document.getElementById('d-note').innerText = p[6] ? "備註: " + p[6] : "";     // 備註
+            document.getElementById('d-date').innerText = p[7];   // 日期
+
+            // 藥檢安全計算
+            const unlockTime = parseInt(p[4]);
+            const now = Math.floor(Date.now() / 1000);
+            const safetyBox = document.getElementById('safety-box');
+
+            if (now < unlockTime) {
+                const waitDays = ((unlockTime - now) / 86400).toFixed(1);
+                safetyBox.innerHTML = `<div class="warning-badge">⛔ 此產品尚在藥檢安全期內 (剩餘 ${waitDays} 天) <br>請勿食用</div>`;
+            } else {
+                safetyBox.innerHTML = `<div class="safe-badge">✅ 藥檢合格 / 安全可食用</div>`;
+            }
+
+        } catch (err) {
+            console.error(err);
+            alert("讀取失敗，請確認合約地址正確，或網路連線正常。");
         }
-
-        document.getElementById("keyword").addEventListener("keypress", function(event) {
-            if (event.key === "Enter") {
-                goSearch();
-            }
-        });
-    </script>
+    }
+</script>
 
 </body>
 </html>
-
-
-
-
-
