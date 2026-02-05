@@ -279,7 +279,10 @@
                 statusHtml = `<div style="color:green; font-weight:bold;">✅ 安全可採收</div>`;
             }
 
-            resultBox.innerHTML = `
+           resultBox.innerHTML = `
+                <div style="text-align:center; margin-bottom:15px;">
+                    <img src="${p[3]}" style="max-width:100%; max-height:200px; border-radius:8px; box-shadow:0 2px 5px rgba(0,0,0,0.2);" onerror="this.style.display='none'">
+                </div>
                 <p><b>產品:</b> ${p[0]} (${p[1]})</p>
                 <p><b>生產者:</b> ${p[2]}</p>
                 <p><b>最新狀態:</b> ${p[5]} (${p[7]})</p>
@@ -310,4 +313,5 @@
 
 </body>
 </html>
+
 
