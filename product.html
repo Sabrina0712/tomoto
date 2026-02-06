@@ -13,30 +13,32 @@
         
         .product-card { background: white; border-radius: 15px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; }
         
-        /* 修改圖片樣式：預設灰色背景，避免破圖 */
+        /* 圖片容器：預設灰色，載入成功才顯示圖片 */
         .img-container {
             width: 100%; height: 250px; 
-            background-color: #e0e0e0; 
+            background-color: #eee; 
             border-radius: 10px; 
             display: flex; align-items: center; justify-content: center;
-            overflow: hidden;
-            color: #757575; font-weight: bold;
+            overflow: hidden; margin-bottom: 15px;
+            color: #aaa; font-weight: bold;
         }
-        .product-img { width: 100%; height: 100%; object-fit: cover; display: none; } /* 預設隱藏，載入成功才顯示 */
+        .product-img { width: 100%; height: 100%; object-fit: cover; display: none; }
         
-        h1 { margin: 15px 0 5px; color: #333; }
-        .meta-info { color: #666; font-size: 0.9em; margin-bottom: 15px; }
+        h1 { margin: 10px 0; color: #333; }
+        .meta-info { color: #666; font-size: 0.95em; line-height: 1.8; margin-bottom: 20px; text-align: left; padding: 0 10px; }
         
-        .status-box { padding: 15px; border-radius: 8px; margin-top: 15px; text-align: left; }
-        .status-safe { background: #e8f5e9; border-left: 5px solid #2e7d32; }
-        .status-locked { background: #ffebee; border-left: 5px solid #c62828; }
+        /* 狀態卡片 */
+        .status-box { padding: 15px; border-radius: 8px; margin-top: 15px; text-align: left; border: 1px solid transparent; }
+        .status-safe { background: #e8f5e9; border-left: 5px solid #2e7d32; color: #2e7d32; }
+        .status-locked { background: #ffebee; border-left: 5px solid #c62828; color: #c62828; }
         
+        /* 時間軸樣式 */
         .timeline { margin-top: 30px; text-align: left; }
         .timeline-item { border-left: 2px solid #ddd; padding-left: 20px; margin-bottom: 20px; position: relative; }
         .timeline-item::before { content: ''; position: absolute; left: -6px; top: 0; width: 10px; height: 10px; background: #00bfa5; border-radius: 50%; }
         .date { font-size: 0.85em; color: #888; }
         .action { font-weight: bold; color: #333; font-size: 1.1em; }
-        .note { color: #555; margin-top: 5px; background: #f9f9f9; padding: 8px; border-radius: 5px; }
+        .note { color: #555; margin-top: 5px; background: #f9f9f9; padding: 8px; border-radius: 5px; font-size: 0.9em;}
 
         .loading { font-size: 1.2em; color: #666; margin-top: 50px; text-align: center; }
         .error-msg { color: #d32f2f; font-weight: bold; text-align: center; margin-top: 20px; padding: 20px; background: #ffebee; border-radius: 8px; display: none;}
@@ -50,11 +52,7 @@
     </div>
 
     <div class="container">
-        <div id="loading-msg" class="loading">
-            ⏳ 正在從區塊鏈讀取資料...<br>
-            <small style="font-size:0.8em; color:#999;">(如果卡住太久，請檢查 Metamask 是否有跳出視窗)</small>
-        </div>
-        
+        <div id="loading-msg" class="loading">⏳ 正在讀取區塊鏈資料...</div>
         <div id="error-msg" class="error-msg"></div>
 
         <div id="product-display" style="display:none;">
@@ -65,25 +63,26 @@
                 </div>
 
                 <h1 id="p-name">載入中...</h1>
-                <p class="meta-info">
-                    📍 產地：<span id="p-loc"></span><br>
-                    👨‍🌾 生產者：<span id="p-farmer"></span><br>
-                    🏷️ 批號 ID：<span id="p-id"></span>
-                </p>
+                
+                <div class="meta-info">
+                    📍 產地：<span id="p-loc" style="color:#333; font-weight:bold;"></span><br>
+                    👨‍🌾 生產者：<span id="p-farmer" style="color:#333; font-weight:bold;"></span><br>
+                    🏷️ 批號 ID：<span id="p-id" style="font-family:monospace; background:#eee; padding:2px 5px; border-radius:3px;"></span>
+                </div>
 
                 <div id="safety-status"></div>
             </div>
 
             <div class="timeline">
-                <h3>📜 生產歷程紀錄</h3>
+                <h3>📜 生產履歷紀錄</h3>
                 <div id="history-list"></div>
             </div>
         </div>
     </div>
 
     <script>
-        // 🔥🔥🔥 請務必確認這個地址與 Farmer 頁面完全一樣！ 🔥🔥🔥
-        const contractAddress = "0xf7ACEF0084b480F240643eaF9e292E7dd4B46d8F"; 
+        // 🔥🔥🔥 這裡一定要換成您農夫頁面那一串地址！！ 🔥🔥🔥
+        const contractAddress = "0x.....(請貼上您的正確地址)....."; 
 
         const contractABI = [
             {"inputs":[{"internalType":"string","name":"_id","type":"string"}],"name":"getProduct","outputs":[{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
@@ -94,55 +93,47 @@
         let contract;
 
         window.onload = async function() {
-            // 1. 抓取網址參數 ?id=P005
             const urlParams = new URLSearchParams(window.location.search);
             const productId = urlParams.get('id');
 
             if (!productId) {
-                showError("❌ 錯誤：網址中缺少產品 ID。<br>請確保網址結尾是 product.html?id=你的編號");
+                showError("❌ 網址錯誤：缺少 ID (例如 ?id=P999)");
                 return;
             }
 
-            // 2. 初始化 Web3
             if (window.ethereum) {
                 try {
                     web3 = new Web3(window.ethereum);
-                    // 檢查網路ID (建議，非必要)
-                    const netId = await web3.eth.net.getId();
-                    console.log("目前網路 ID:", netId);
-
                     contract = new web3.eth.Contract(contractABI, contractAddress);
-                    console.log("合約初始化完成，準備讀取:", productId);
-                    
                     loadProductData(productId);
-
                 } catch (e) {
                     showError("Web3 初始化失敗：" + e.message);
                 }
             } else {
-                showError("找不到錢包！<br>請安裝 MetaMask 或使用支援 Web3 的瀏覽器。");
+                showError("找不到錢包，請安裝 MetaMask");
             }
         };
 
         async function loadProductData(id) {
             try {
-                // 讀取基本資料
+                // 讀取資料：依序對應 名稱, 產地, 農夫, 照片, 時間戳
                 const p = await contract.methods.getProduct(id).call();
 
-                // 如果讀回來名字是空的，代表查無此人
-                if (!p[0]) throw new Error("查無此 ID (區塊鏈上無資料)");
+                // 檢查是否有名字，若無則代表查無此人
+                if (!p[0]) throw new Error("查無此 ID (資料為空)");
 
+                // 填入資料
                 document.getElementById("p-id").innerText = id;
                 document.getElementById("p-name").innerText = p[0];
                 document.getElementById("p-loc").innerText = p[1];
                 document.getElementById("p-farmer").innerText = p[2];
                 
-                // 圖片處理：如果有網址才設定，否則維持灰色背景
+                // 圖片處理
                 if(p[3] && p[3].startsWith("http")) {
                     document.getElementById("p-photo").src = p[3];
                 }
 
-                // 處理安全採收期
+                // 安全期計算
                 const unlockTime = parseInt(p[4]);
                 const now = Math.floor(Date.now() / 1000);
                 const statusDiv = document.getElementById("safety-status");
@@ -151,68 +142,55 @@
                     const waitDays = ((unlockTime - now) / 86400).toFixed(1);
                     statusDiv.innerHTML = `
                         <div class="status-box status-locked">
-                            <h3 style="margin:0 0 5px 0; color:#d32f2f;">⛔ 藥檢管制鎖定中</h3>
-                            <p style="margin:0; color:#c62828;">此產品尚在安全採收期規範內。<br>距離解禁還需等待約 <b>${waitDays}</b> 天。</p>
+                            <h3>⛔ 藥檢管制鎖定中</h3>
+                            <p>此產品尚在安全採收期規範內。<br>距離解禁還需等待約 <b>${waitDays}</b> 天。</p>
                         </div>`;
                 } else {
                     statusDiv.innerHTML = `
                         <div class="status-box status-safe">
-                            <h3 style="margin:0 0 5px 0; color:#2e7d32;">✅ 安全可食</h3>
-                            <p style="margin:0; color:#388e3c;">經區塊鏈自動驗證，藥物殘留期已過，或無施藥紀錄。</p>
+                            <h3>✅ 安全可食 (Safe)</h3>
+                            <p>經區塊鏈自動驗證，藥物殘留期已過，或無施藥紀錄。</p>
                         </div>`;
                 }
 
-                // 讀取歷史紀錄
+                // 歷史紀錄
                 const history = await contract.methods.getHistory(id).call();
                 const listDiv = document.getElementById("history-list");
                 listDiv.innerHTML = ""; 
 
                 if (history.length === 0) {
-                    listDiv.innerHTML = "<p>暫無生產紀錄</p>";
+                    listDiv.innerHTML = "<p style='color:#999;'>尚無生產紀錄</p>";
                 } else {
                     [...history].reverse().forEach(rec => {
                         let icon = "🌱";
                         if(rec.action.includes("施藥")) icon = "💉";
                         if(rec.action.includes("採收")) icon = "🧺";
-                        if(rec.action.includes("施肥")) icon = "💩";
-
+                        
                         listDiv.innerHTML += `
                             <div class="timeline-item">
                                 <div class="date">${rec.date}</div>
                                 <div class="action">${icon} ${rec.action}</div>
-                                <div class="note">${rec.note || "無備註"}</div>
+                                <div class="note">${rec.note || ""}</div>
                             </div>
                         `;
                     });
                 }
 
-                // ✅ 成功讀取：隱藏 loading，顯示內容
                 document.getElementById("loading-msg").style.display = "none";
                 document.getElementById("product-display").style.display = "block";
 
             } catch (err) {
-                console.error("讀取錯誤:", err);
-                
-                let userMsg = "讀取失敗，請檢查控制台(F12)";
-                
-                // 常見錯誤翻譯
-                if (err.message.includes("revert")) {
-                    userMsg = `❌ 查無此 ID：${id}<br>請確認農夫端是否已按下「註冊」按鈕。`;
-                } else if (err.message.includes("call revert exception")) {
-                    userMsg = "❌ 合約連線錯誤<br>可能是「合約地址」填錯，或是連錯網路(Ganache)。";
-                }
-
-                showError(userMsg);
+                console.error(err);
+                showError("❌ 讀取失敗：<br>" + err.message);
             }
         }
 
         function showError(msg) {
             document.getElementById("loading-msg").style.display = "none";
             const errDiv = document.getElementById("error-msg");
-            errDiv.innerHTML = msg; // 允許 HTML 標籤
+            errDiv.innerHTML = msg;
             errDiv.style.display = "block";
         }
     </script>
-
 </body>
 </html>
