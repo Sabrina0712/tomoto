@@ -11,14 +11,20 @@
         /* --- 基礎設定 --- */
         body { font-family: 'Microsoft JhengHei', sans-serif; background: #f4f6f8; margin: 0; padding-bottom: 60px; color: #333; }
         
-        /* --- 上方綠色搜尋區塊 (來自第二段程式碼) --- */
-        .header { background: #00bfa5; padding: 60px 20px; text-align: center; color: white; margin-bottom: 30px; }
+        /* --- 1. 標題與搜尋區 --- */
+        .header { 
+            background: #1b5e20; /* 深森林綠 */
+            padding: 60px 20px; 
+            text-align: center; 
+            color: white; 
+            margin-bottom: 30px; 
+        }
         .header h1 { margin: 0 0 10px 0; font-size: 2.5em; }
         .header p { opacity: 0.9; font-size: 1.1em; }
 
         .search-box { 
             background: white; 
-            max-width: 450px; 
+            max-width: 500px; 
             margin: 20px auto; 
             padding: 5px; 
             border-radius: 30px; 
@@ -34,7 +40,7 @@
             border-radius: 30px 0 0 30px;
         }
         .search-btn { 
-            background: #00bfa5; 
+            background: #2e7d32; 
             color: white; 
             border: none; 
             padding: 10px 30px; 
@@ -44,13 +50,21 @@
             margin: 5px;
             transition: 0.3s;
             font-weight: bold;
+            white-space: nowrap;
         }
-        .search-btn:hover { background: #009688; }
+        .search-btn:hover { background: #1b5e20; }
 
-        /* --- 下方結果顯示區塊 (來自第一段程式碼) --- */
+        /* 關鍵字提示標籤 */
+        .keyword-tags { margin-top: 15px; font-size: 0.9em; opacity: 0.9; }
+        .tag { 
+            display: inline-block; border: 1px solid rgba(255,255,255,0.4); 
+            padding: 4px 10px; border-radius: 15px; margin: 0 3px; cursor: pointer; transition: 0.2s; 
+        }
+        .tag:hover { background: rgba(255,255,255,0.2); }
+
+        /* --- 下方結果顯示區塊 --- */
         .container { max-width: 800px; margin: 0 auto; padding: 0 20px; }
 
-        /* 產品資訊卡片 */
         .product-card { background: white; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.08); display: flex; flex-direction: column; margin-bottom: 30px; padding: 30px; }
         .product-title { font-size: 2rem; margin: 10px 0; color: #222; }
         .product-meta { color: #666; font-size: 1rem; line-height: 1.8; }
@@ -66,19 +80,25 @@
         .event-card { 
             background: white; padding: 15px 20px; border-radius: 10px; margin-bottom: 25px; 
             box-shadow: 0 2px 8px rgba(0,0,0,0.05); position: relative; 
-            border-left: 5px solid #00bfa5; /* 改成跟標題一樣的綠色 */
+            border-left: 5px solid #ccc; 
         }
         .event-dot { 
             position: absolute; left: -39px; top: 15px; width: 16px; height: 16px; 
             border-radius: 50%; border: 3px solid white; box-shadow: 0 0 0 2px #ccc; 
-            background: #00bfa5; /* 改成跟標題一樣的綠色 */
+            background: #ccc;
         }
+
+        /* 顏色定義 */
+        .type-farm { border-left-color: #2e7d32; }
+        .type-farm .event-dot { background: #2e7d32; box-shadow: 0 0 0 2px #2e7d32; }
         
+        .type-logistics { border-left-color: #1565c0; }
+        .type-logistics .event-dot { background: #1565c0; box-shadow: 0 0 0 2px #1565c0; }
+
         .event-date { font-size: 0.85rem; color: #888; margin-bottom: 5px; }
         .event-title { font-weight: bold; font-size: 1.1rem; }
         .event-detail { margin-top: 5px; color: #444; }
 
-        /* 讀取與錯誤訊息 */
         .loading { text-align: center; padding: 50px; color: #888; font-size: 1.2rem; display: none; }
         .error-msg { text-align: center; padding: 20px; background: #ffebee; color: #d32f2f; border-radius: 8px; margin-top: 20px; display: none; }
     </style>
@@ -87,11 +107,18 @@
 
     <div class="header">
         <h1>🔍 荷葉安心農產履歷平台</h1>
-        <p>輸入產品批次編號 (例如: P003) 查詢</p>
+        <p>輸入產品名稱或批次編號查詢</p>
 
         <div class="search-box">
-            <input type="text" id="search-input" class="search-input" placeholder="請輸入產品 ID...">
+            <input type="text" id="search-input" class="search-input" placeholder="例如：香蕉、P003...">
             <button onclick="searchProduct()" class="search-btn">搜尋</button>
+        </div>
+
+        <div class="keyword-tags">
+            熱門搜尋：
+            <span class="tag" onclick="quickSearch('香蕉')">香蕉</span>
+            <span class="tag" onclick="quickSearch('高麗菜')">高麗菜</span>
+            <span class="tag" onclick="quickSearch('番茄')">番茄</span>
         </div>
     </div>
 
@@ -120,16 +147,27 @@
     </div>
 
     <script>
-        // --- 區塊鏈設定 ---
         const contractAddress = "0x0136f45A37d68630e2C33Bd228C61F20b23a27a5"; 
         const contractABI = [
             {"inputs":[{"internalType":"string","name":"_id","type":"string"}],"name":"getProduct","outputs":[{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
             {"inputs":[{"internalType":"string","name":"_id","type":"string"}],"name":"getHistory","outputs":[{"components":[{"internalType":"string","name":"date","type":"string"},{"internalType":"string","name":"action","type":"string"},{"internalType":"string","name":"note","type":"string"},{"internalType":"uint256","name":"timestamp","type":"uint256"},{"internalType":"uint256","name":"phi","type":"uint256"}],"internalType":"struct AgProduct.Record[]","name":"","type":"tuple[]"}],"stateMutability":"view","type":"function"}
         ];
 
+        // 🔥 【重要】關鍵字對照表 🔥
+        // 請在這裡新增您的產品關鍵字
+        // 左邊是「消費者輸入的字」，右邊是「對應的 ID」
+        const keywordMapping = {
+            "香蕉": "P005",
+            "Banana": "P005",
+            "banana": "P005",
+            "高麗菜": "P003",
+            "Cabbage": "P003",
+            "番茄": "P006",
+            "Tomato": "P006"
+        };
+
         let web3, contract;
 
-        // --- 初始化 Web3 ---
         window.onload = async function() {
             if (window.ethereum) {
                 web3 = new Web3(window.ethereum);
@@ -139,7 +177,6 @@
                 alert("請安裝 MetaMask 以獲得最佳體驗");
             }
 
-            // 讓使用者按 Enter 也能搜尋
             document.getElementById("search-input").addEventListener("keypress", function(event) {
                 if (event.key === "Enter") {
                     searchProduct();
@@ -147,12 +184,16 @@
             });
         };
 
-        // --- 搜尋功能 (核心邏輯) ---
-        async function searchProduct() {
-            const id = document.getElementById('search-input').value.trim();
-            if(!id) return alert("請輸入 ID");
+        // 點擊標籤快速搜尋用
+        function quickSearch(keyword) {
+            document.getElementById('search-input').value = keyword;
+            searchProduct();
+        }
 
-            // 顯示 Loading，隱藏舊結果
+        async function searchProduct() {
+            let input = document.getElementById('search-input').value.trim();
+            if(!input) return alert("請輸入內容");
+
             const loading = document.getElementById('loading');
             const resultArea = document.getElementById('result-area');
             const errorMsg = document.getElementById('error-msg');
@@ -161,20 +202,26 @@
             resultArea.style.display = 'none';
             errorMsg.style.display = 'none';
 
-            try {
-                // 1. 呼叫合約讀取資料
-                const p = await contract.methods.getProduct(id).call();
-                
-                if (!p[0]) throw new Error("查無此 ID，請確認農夫端是否已註冊。");
+            // --- 🔎 智慧轉換邏輯 ---
+            // 1. 先去查對照表，看是不是關鍵字 (例如輸入「香蕉」)
+            let searchId = input; 
+            if (keywordMapping[input]) {
+                searchId = keywordMapping[input]; // 轉成 P005
+                console.log(`關鍵字轉換: ${input} -> ${searchId}`);
+            }
+            // 2. 如果對照表沒有，我們就假設使用者輸入的是 ID (例如 P003)，直接去搜
 
-                // 2. 填入文字資料
-                document.getElementById('p-id').innerText = id;
+            try {
+                const p = await contract.methods.getProduct(searchId).call();
+                
+                if (!p[0]) throw new Error(`查無資料 (ID: ${searchId})，請確認輸入正確。`);
+
+                document.getElementById('p-id').innerText = searchId;
                 document.getElementById('p-name').innerText = p[0];
                 document.getElementById('p-loc').innerText = p[1];
                 document.getElementById('p-farmer').innerText = p[2];
 
-                // 3. 讀取歷史紀錄
-                const history = await contract.methods.getHistory(id).call();
+                const history = await contract.methods.getHistory(searchId).call();
                 const list = document.getElementById('timeline-list');
                 list.innerHTML = "";
 
@@ -183,7 +230,18 @@
                 } else {
                     [...history].reverse().forEach(record => {
                         const div = document.createElement('div');
-                        div.className = "event-card";
+                        
+                        let typeClass = "type-farm"; 
+                        const actionText = record.action;
+                        
+                        if (actionText.includes("物流") || 
+                            actionText.includes("配送") || 
+                            actionText.includes("出貨") || 
+                            actionText.includes("運送")) {
+                            typeClass = "type-logistics";
+                        }
+
+                        div.className = `event-card ${typeClass}`;
                         div.innerHTML = `
                             <div class="event-dot"></div>
                             <div class="event-date">${record.date}</div>
@@ -194,14 +252,13 @@
                     });
                 }
 
-                // 4. 顯示結果區塊
                 loading.style.display = 'none';
                 resultArea.style.display = 'block';
 
             } catch (err) {
                 console.error(err);
                 loading.style.display = 'none';
-                errorMsg.innerText = "查詢失敗：" + err.message;
+                errorMsg.innerHTML = `查詢失敗：<br>找不到關鍵字 "${input}" 對應的產品，或 ID 輸入錯誤。`;
                 errorMsg.style.display = 'block';
             }
         }
