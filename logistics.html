@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>物流狀態更新系統</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.7.4/web3.min.js"></script>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background: #e3f2fd; } /* 藍色背景代表物流 */
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #1565c0; }
+        
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input, select { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 5px; }
+        
+        button { width: 100%; padding: 12px; background: #1565c0; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 1rem; }
+        button:hover { background: #0d47a1; }
+
+        .status-msg { margin-top: 20px; text-align: center; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>🚚 物流狀態更新</h2>
+        
+        <div class="form-group">
+            <label>產品 ID </label>
+            <input type="text" id="p-id" placeholder="例如: P003">
+        </div>
+
+        <div class="form-group">
+            <label>更新日期</label>
+            <input type="date" id="l-date">
+        </div>
+
+        <div class="form-group">
+            <label>物流狀態 (Action)</label>
+            <select id="l-action">
+                <option value="物流：已收貨 (In Transit)">📦 物流：已收貨</option>
+                <option value="物流：運送中 (Shipping)">🚚 物流：運送中</option>
+                <option value="物流：集貨中心分理 (Sorting)">🏭 物流：集貨中心</option>
+                <option value="物流：已送達 (Arrived)">✅ 物流：已送達</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>備註 (車號 / 溫度 / 經手人)</label>
+            <input type="text" id="l-note" placeholder="例如: 冷藏車 888-TG, 溫度4度C">
+        </div>
+
+        <button onclick="updateLogistics()">上傳物流資訊</button>
+        <div id="status" class="status-msg"></div>
+    </div>
+
+    <script>
+        // ▼▼▼ 請確認合約地址正確 ▼▼▼
+        const contractAddress = "0x0E9efa4bc6396D53B29839B9fB4675c03C2ffb25";
+        
+        const contractABI = [
+            { "inputs": [ { "internalType": "string", "name": "_id", "type": "string" }, { "internalType": "string", "name": "_date", "type": "string" }, { "internalType": "string", "name": "_action", "type": "string" }, { "internalType": "string", "name": "_note", "type": "string" } ], "name": "addHistory", "outputs": [], "stateMutability": "nonpayable", "type": "function" }
+        ];
+
+        let web3, contract, userAccount;
+
+        window.onload = async function() {
+            if (window.ethereum) {
+                web3 = new Web3(window.ethereum);
+                contract = new web3.eth.Contract(contractABI, contractAddress);
+                
+                // 設定日期預設值
+                const today = new Date().toISOString().split('T')[0];
+                document.getElementById('l-date').value = today;
+
+                // 請求錢包授權
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                userAccount = accounts[0];
+            } else {
+                alert("請安裝 MetaMask！");
+            }
+        };
+
+        async function updateLogistics() {
+            const id = document.getElementById('p-id').value.trim();
+            const date = document.getElementById('l-date').value;
+            const action = document.getElementById('l-action').value;
+            const note = document.getElementById('l-note').value;
+            const statusDiv = document.getElementById('status');
+
+            if (!id) return alert("請輸入產品 ID");
+
+            statusDiv.innerHTML = "⏳ 等待 MetaMask 確認中...";
+            statusDiv.style.color = "blue";
+
+            try {
+                // 🔥 關鍵點：物流只呼叫 addHistory，絕對不呼叫 createProduct
+                await contract.methods.addHistory(id, date, action, note)
+                    .send({ from: userAccount });
+
+                statusDiv.innerHTML = "✅ 物流資訊更新成功！";
+                statusDiv.style.color = "green";
+                
+                // 清空備註欄位方便下一筆
+                document.getElementById('l-note').value = ""; 
+
+            } catch (error) {
+                console.error(error);
+                // 如果報錯，很可能是因為 ID 根本還沒被農夫建立
+                if (error.message.includes("Product ID not found")) {
+                    statusDiv.innerHTML = "❌ 錯誤：找不到此產品 ID，請確認農夫是否已建立資料。";
+                } else {
+                    statusDiv.innerHTML = "❌ 更新失敗：" + error.message;
+                }
+                statusDiv.style.color = "red";
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>農夫智慧管理後台 (修復版)</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.7.4/web3.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { font-family: 'Microsoft JhengHei', sans-serif; background: #f4f7f6; padding: 20px; color: #333; }
+        .container { max-width: 900px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        
+        /* 分頁按鈕 */
+        .tab-buttons { display: flex; gap: 10px; margin-bottom: 25px; border-bottom: 2px solid #eee; padding-bottom: 10px; flex-wrap: wrap; }
+        .tab-btn { flex: 1; padding: 12px; cursor: pointer; background: #f0f0f0; border: none; border-radius: 8px 8px 0 0; font-weight: bold; font-size: 1rem; color: #555; transition: 0.3s; min-width: 150px; }
+        .tab-btn:hover { background: #e0e0e0; }
+        .tab-btn.active { background: #2e7d32; color: white; transform: translateY(2px); }
+
+        /* 區塊顯示控制 */
+        .form-section { display: none; animation: fadeIn 0.4s; }
+        .form-section.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* 表單樣式 */
+        h2 { margin-top: 0; color: #2e7d32; border-left: 5px solid #2e7d32; padding-left: 10px; }
+        label { font-weight: bold; display: block; margin-bottom: 5px; margin-top: 15px; }
+        input, select, textarea { width: 100%; padding: 12px; margin-bottom: 5px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 1rem; }
+        input:focus, select:focus, textarea:focus { border-color: #2e7d32; outline: none; }
+        
+        button.action-btn { width: 100%; padding: 12px; border: none; border-radius: 6px; font-size: 1.1rem; cursor: pointer; font-weight: bold; margin-top: 20px; transition: 0.2s; }
+        .btn-green { background: #2e7d32; color: white; }
+        .btn-green:hover { background: #1b5e20; }
+        .btn-blue { background: #1565c0; color: white; }
+        .btn-blue:hover { background: #0d47a1; }
+        .btn-orange { background: #ff9800; color: white; }
+        
+        /* 施藥專區樣式 */
+        .pesticide-box { background: #ffebee; padding: 15px; border-radius: 8px; border: 1px solid #ffcdd2; display: none; margin-top: 15px; }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .full-width { grid-column: span 2; }
+        .warning-text { font-size: 0.9em; color: #c62828; margin-top: 5px; }
+        
+      /* 狀態徽章 */
+    .status-badge { 
+        /* display: inline-block;  <-- 這一行刪掉，或像這樣註解起來 */
+        padding: 5px 10px; 
+        border-radius: 20px; 
+        /* ...其他保持不變 */
+        float: right;
+    }
+
+        .status-badge.connected {
+            background: #e8f5e9;
+            color: #2e7d32;
+            border: 1px solid #c8e6c9;
+        }
+        
+        .status-result-box {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            background: #fafafa;
+            border: 1px solid #eee;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div id="wallet-status" class="status-badge" onclick="checkConnection()" style="cursor: pointer;">
+    🔴 點擊連線
+</div>
+    
+    <div class="tab-buttons">
+        <button class="tab-btn active" onclick="switchTab(this, 'profile')">1. 設定個人檔案</button>
+        <button class="tab-btn" onclick="switchTab(this, 'product')">2. 建立新產品</button>
+        <button class="tab-btn" onclick="switchTab(this, 'record')">3. 新增生長紀錄</button>
+        <button class="tab-btn" onclick="switchTab(this, 'check')">4. 狀態查詢</button>
+    </div>
+
+    <div id="section-profile" class="form-section active">
+        <h2>👨‍🌾 設定農夫履歷</h2>
+        <p style="color:#666; font-size:0.9rem;">設定一次即可，未來建立產品時會自動帶入您的名字。</p>
+        
+        <label>您的姓名 (ID)</label>
+        <input type="text" id="f-name" placeholder="例如：王小明">
+
+        <label>農場地點</label>
+        <input type="text" id="f-loc" placeholder="例如：台中市太平區">
+
+        <label>大頭貼網址</label>
+        <input type="text" id="f-photo" placeholder="https://...">
+
+        <label>聯絡電話</label>
+        <input type="text" id="f-contact" placeholder="0912-345-678">
+
+        <label>自我介紹</label>
+        <textarea id="f-desc" rows="4" placeholder="請介紹您的種植理念..."></textarea>
+
+        <button class="action-btn btn-green" onclick="updateProfile()">儲存個人檔案</button>
+    </div>
+
+    <div id="section-product" class="form-section">
+        <h2>🌱 註冊新產品</h2>
+        
+        <label>產品 ID (唯一編號)</label>
+        <input type="text" id="p-id" placeholder="例如: P005">
+        
+        <label>產品名稱</label>
+        <input type="text" id="p-name" placeholder="例如: 高山高麗菜">
+        
+        <label>生產者姓名 (自動帶入)</label>
+        <input type="text" id="p-farmer" readonly style="background:#eee; color:#555;">
+
+        <label>產地</label>
+        <input type="text" id="p-location" placeholder="例如: 台中市">
+
+        <label>產品照片網址</label>
+        <input type="text" id="p-photo" placeholder="https://...">
+
+        <button class="action-btn btn-green" onclick="registerProduct()">註冊產品上鏈</button>
+    </div>
+
+    <div id="section-record" class="form-section">
+        <h2>📝 新增生長/施藥紀錄</h2>
+        
+        <label>產品 ID</label>
+        <input type="text" id="rec-id" placeholder="輸入產品 ID">
+
+        <div class="form-grid">
+            <div>
+                <label>執行動作</label>
+                <select id="rec-process" onchange="handleProcessChange()">
+                    <option value="耕地管理">耕地管理</option>
+                    <option value="種植">種植 / 育苗</option>
+                    <option value="施肥">施肥</option>
+                    <option value="施藥">☠️ 施藥 (嚴格管制)</option>
+                    <option value="採收">採收</option>
+                    <option value="加工/包裝">加工 / 包裝</option>
+                </select>
+            </div>
+            <div>
+                <label>執行日期</label>
+                <input type="date" id="rec-date">
+                <small id="date-hint" style="color:#666; font-size:0.8em; display:block; margin-top:5px;">一般作業僅限補登 14 天內</small>
+            </div>
+        </div>
+
+        <div id="normal-inputs" style="margin-top: 15px;">
+            <label>作業內容</label>
+            <input type="text" id="rec-detail" placeholder="例如: 使用有機肥料">
+        </div>
+
+        <div id="pesticide-inputs" class="pesticide-box">
+            <h4 style="margin:0 0 10px 0; color:#c62828;"><i class="fas fa-skull-crossbones"></i> 施藥管制資料</h4>
+            <div class="form-grid">
+                <div><label>農藥名稱</label><input type="text" id="pest-name" placeholder="例如: 納乃得"></div>
+                <div><label>劑量/倍數</label><input type="text" id="pest-dose" placeholder="例如: 1000倍"></div>
+                <div class="full-width">
+                    <label>安全採收期 (PHI 天數)</label>
+                    <input type="number" id="pest-phi" placeholder="例如: 7 (代表7天內禁止採收)">
+                    <div class="warning-text">⚠️ 系統將依據此天數鎖定採收功能。</div>
+                </div>
+            </div>
+        </div>
+
+        <div style="margin-top: 15px;">
+            <label>備註 (選填)</label>
+            <input type="text" id="rec-note" placeholder="其他補充事項...">
+        </div>
+
+        <button class="action-btn btn-blue" onclick="addRecord()">➕ 新增紀錄到區塊鏈</button>
+    </div>
+
+    <div id="section-check" class="form-section">
+        <h2>🔎 產品狀態自我檢查</h2>
+        <div style="display: flex; gap: 10px;">
+            <input type="text" id="query-id" placeholder="輸入產品 ID (例如: P005)" style="flex:1;">
+            <button class="action-btn btn-orange" onclick="checkStatus()" style="margin-top:0; width:auto; padding: 0 30px;">查詢</button>
+        </div>
+        <div id="status-result" class="status-result-box"></div>
+    </div>
+
+</div>
+
+<script>
+    // --- 1. 初始化設定 ---
+    const contractAddress = "0x0136f45A37d68630e2C33Bd228C61F20b23a27a5";
+    
+    // 壓縮後的 ABI，防止複製出錯
+    const contractABI = [{"inputs":[{"internalType":"string","name":"_id","type":"string"},{"internalType":"string","name":"_date","type":"string"},{"internalType":"string","name":"_action","type":"string"},{"internalType":"string","name":"_note","type":"string"},{"internalType":"uint256","name":"_phi","type":"uint256"},{"internalType":"uint256","name":"_dateTimestamp","type":"uint256"}],"name":"addHistory","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"string","name":"_name","type":"string"},{"internalType":"string","name":"_location","type":"string"},{"internalType":"string","name":"_desc","type":"string"},{"internalType":"string","name":"_photo","type":"string"},{"internalType":"string","name":"_contact","type":"string"}],"name":"updateFarmerProfile","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"string","name":"_id","type":"string"},{"internalType":"string","name":"_name","type":"string"},{"internalType":"string","name":"_loc","type":"string"},{"internalType":"string","name":"_farmer","type":"string"},{"internalType":"string","name":"_photo","type":"string"}],"name":"registerProduct","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"string","name":"_id","type":"string"}],"name":"getProduct","outputs":[{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"}];
+
+    let web3;
+    let contract;
+    let userAccount;
+
+    // --- 2. 工具函式 ---
+    
+    // 通用日期格式化 (YYYY-MM-DD)
+    function formatDate(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
+    // 分頁切換 (修復版)
+    function switchTab(btnElement, tabName) {
+        // 隱藏所有區塊
+        const sections = document.querySelectorAll('.form-section');
+        for(let i=0; i<sections.length; i++) {
+            sections[i].style.display = 'none';
+        }
+        
+        // 移除所有按鈕的 active 樣式
+        const buttons = document.querySelectorAll('.tab-btn');
+        for(let i=0; i<buttons.length; i++) {
+            buttons[i].classList.remove('active');
+        }
+
+        // 顯示目標區塊並啟用按鈕
+        document.getElementById('section-' + tabName).style.display = 'block';
+        if(btnElement) {
+            btnElement.classList.add('active');
+        }
+
+        // 自動帶入邏輯
+        if(tabName === 'product') {
+            const fName = document.getElementById('f-name').value;
+            document.getElementById('p-farmer').value = fName;
+            if(!fName) alert("💡 提示：建議先到第一頁「設定個人檔案」填寫姓名，系統會自動帶入。");
+        }
+        if(tabName === 'record') {
+            const lastId = document.getElementById('p-id').value;
+            if(lastId) document.getElementById('rec-id').value = lastId;
+        }
+    }
+
+    // 檢查錢包連線
+    async function checkConnection() {
+        if (typeof window.ethereum !== 'undefined') {
+            try {
+                web3 = new Web3(window.ethereum);
+                await window.ethereum.request({ method: 'eth_requestAccounts' });
+                const accounts = await web3.eth.getAccounts();
+                userAccount = accounts[0];
+                contract = new web3.eth.Contract(contractABI, contractAddress);
+                
+                const badge = document.getElementById('wallet-status');
+                badge.innerText = "🟢 已連線: " + userAccount.substring(0,6) + "...";
+                badge.className = "status-badge connected";
+                return true;
+            } catch (error) { 
+                console.error(error); 
+                alert("連線失敗：" + error.message); 
+                return false; 
+            }
+        } else { 
+            alert("請安裝 MetaMask 擴充功能！"); 
+            return false; 
+        }
+    }
+
+    // --- 3. 主要功能邏輯 ---
+
+    // 頁面載入時執行
+    window.onload = function() {
+        setGeneralDateLimit(); 
+    }
+
+    // (1) 更新個人檔案
+    async function updateProfile() {
+        if (!await checkConnection()) return;
+        
+        const name = document.getElementById('f-name').value;
+        const loc = document.getElementById('f-loc').value;
+        const photo = document.getElementById('f-photo').value;
+        const desc = document.getElementById('f-desc').value;
+        const contact = document.getElementById('f-contact').value;
+
+        if(!name) return alert("姓名為必填項目");
+
+        try {
+            await contract.methods.updateFarmerProfile(name, loc, desc, photo, contact)
+                .send({ from: userAccount });
+            alert("✅ 個人檔案已更新！");
+        } catch (err) { alert("❌ 失敗：" + err.message); }
+    }
+
+    // (2) 註冊產品
+    async function registerProduct() {
+        if (!await checkConnection()) return;
+        
+        const id = document.getElementById("p-id").value;
+        const name = document.getElementById("p-name").value;
+        const loc = document.getElementById("p-location").value;
+        const farmer = document.getElementById("p-farmer").value;
+        const photo = document.getElementById("p-photo").value;
+
+        if(!id || !name || !farmer) return alert("請填寫完整資料 (姓名需從第一頁設定)");
+        
+        try {
+            await contract.methods.registerProduct(id, name, loc, farmer, photo).send({ from: userAccount });
+            alert("✅ 產品註冊成功！請切換到第三頁輸入生長紀錄。");
+        } catch (err) { alert("交易失敗: " + err.message); }
+    }
+
+    // (3) 新增紀錄與日期控制
+    function setGeneralDateLimit() {
+        const dateInput = document.getElementById("rec-date");
+        const today = new Date();
+        const pastDate = new Date();
+        pastDate.setDate(today.getDate() - 14);
+        
+        const maxStr = formatDate(today);
+        const minStr = formatDate(pastDate);
+        
+        dateInput.disabled = false;
+        dateInput.max = maxStr; 
+        dateInput.min = minStr;
+        dateInput.value = maxStr;
+        
+        const hint = document.getElementById("date-hint");
+        hint.innerHTML = `一般作業區間：${minStr} 至 ${maxStr} (今天)`;
+        hint.style.color = "#666";
+    }
+
+    function setPesticideDateLimit() {
+        const dateInput = document.getElementById("rec-date");
+        const today = new Date();
+        const todayStr = formatDate(today);
+        
+        dateInput.value = todayStr;
+        dateInput.disabled = true; // 禁止修改
+        
+        const hint = document.getElementById("date-hint");
+        hint.innerHTML = "<b style='color:red;'>🚫 施藥作業必須當日申報，無法修改日期。</b>";
+    }
+
+    function handleProcessChange() {
+        const type = document.getElementById("rec-process").value;
+        const pestBox = document.getElementById("pesticide-inputs");
+        const normalBox = document.getElementById("normal-inputs");
+        
+        if (type.includes("施藥")) {
+            pestBox.style.display = "block";
+            normalBox.style.display = "none";
+            setPesticideDateLimit();
+        } else {
+            pestBox.style.display = "none";
+            normalBox.style.display = "block";
+            setGeneralDateLimit();
+        }
+    }
+
+    async function addRecord() {
+        if (!await checkConnection()) return;
+        
+        const id = document.getElementById("rec-id").value;
+        const type = document.getElementById("rec-process").value;
+        let dateVal = document.getElementById("rec-date").value;
+        const noteRaw = document.getElementById("rec-note").value;
+
+        if(!id) return alert("請輸入產品 ID");
+
+        let actionStr = "";
+        let phi = 0;
+
+        // 依據類型組裝資料
+        if (type.includes("施藥")) {
+            dateVal = new Date().toISOString().split('T')[0]; // 強制當天
+            const pName = document.getElementById("pest-name").value;
+            const pDose = document.getElementById("pest-dose").value;
+            const pPhiInput = document.getElementById("pest-phi").value;
+
+            if(!pName || !pDose || !pPhiInput) return alert("❌ 施藥資料不完整");
+            
+            actionStr = `施藥: ${pName} / 劑量: ${pDose}`;
+            phi = parseInt(pPhiInput) || 0;
+        } else {
+            if(!dateVal) return alert("請選擇日期");
+            const selDate = new Date(dateVal);
+            const today = new Date();
+            const limit = new Date();
+            limit.setDate(today.getDate() - 14);
+            
+            // 時間歸零以進行比較
+            selDate.setHours(0,0,0,0); today.setHours(0,0,0,0); limit.setHours(0,0,0,0);
+            
+            if (selDate < limit) return alert("❌ 錯誤：不能補登超過 14 天前的紀錄");
+            if (selDate > today) return alert("❌ 錯誤：不能輸入未來日期");
+            
+            const detail = document.getElementById("rec-detail").value;
+            actionStr = `${type}: ${detail}`;
+        }
+
+        const timestamp = Math.floor(new Date(dateVal).getTime() / 1000);
+        
+        try {
+            await contract.methods.addHistory(id, dateVal, actionStr, noteRaw, phi, timestamp).send({ from: userAccount });
+            
+            let msg = "✅ 紀錄已上鏈！";
+            if (phi > 0) msg += `\n⚠️ 依據 PHI 規定，此產品將鎖定 ${phi} 天禁止採收。`;
+            alert(msg);
+            
+            // 清空欄位
+            document.getElementById("rec-detail").value = "";
+            document.getElementById("pest-name").value = "";
+            document.getElementById("rec-note").value = "";
+        } catch (err) { alert("交易失敗: " + err.message); }
+    }
+
+    // (4) 狀態查詢
+    async function checkStatus() {
+        if (!await checkConnection()) return;
+        const id = document.getElementById("query-id").value.trim();
+        if(!id) return alert("請輸入 ID");
+        
+        try {
+            const p = await contract.methods.getProduct(id).call();
+            // p[0] 是名稱
+            if(!p[0]) throw new Error("查無此 ID，請確認是否已註冊。");
+            
+            const resultBox = document.getElementById("status-result");
+            resultBox.style.display = "block";
+            
+            const unlockTime = parseInt(p[4]);
+            const now = Math.floor(Date.now() / 1000);
+            
+            let statusHtml = "";
+            if (unlockTime > now) {
+                const waitDays = ((unlockTime - now) / 86400).toFixed(1);
+                statusHtml = `<div style="padding:10px; background:#ffebee; border-left:5px solid #c62828; margin-top:10px;">
+                    <div style="color:#d32f2f; font-weight:bold;">⛔ 藥檢管制鎖定中</div>
+                    <div style="color:#c62828;">尚需等待 ${waitDays} 天才可採收。</div>
+                </div>`;
+            } else {
+                statusHtml = `<div style="padding:10px; background:#e8f5e9; border-left:5px solid #2e7d32; margin-top:10px;">
+                    <div style="color:#2e7d32; font-weight:bold;">✅ 安全期已過，可正常出貨</div>
+                </div>`;
+            }
+            
+            resultBox.innerHTML = `<h3>${p[0]}</h3>
+                                   <p><b>產地：</b>${p[1]} <br> <b>農夫：</b>${p[2]}</p>
+                                   ${statusHtml}`;
+        } catch (err) { 
+            console.error(err); 
+            alert("查詢失敗：" + err.message); 
+        }
+    }
+</script>
+</body>
+</html>
