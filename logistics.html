@@ -55,8 +55,7 @@
     </div>
 
     <script>
-        // ▼▼▼ 請確認合約地址正確 ▼▼▼
-        const contractAddress = "0x0E9efa4bc6396D53B29839B9fB4675c03C2ffb25";
+        const contractAddress = "0x0136f45A37d68630e2C33Bd228C61F20b23a27a5";
         
         const contractABI = [
             { "inputs": [ { "internalType": "string", "name": "_id", "type": "string" }, { "internalType": "string", "name": "_date", "type": "string" }, { "internalType": "string", "name": "_action", "type": "string" }, { "internalType": "string", "name": "_note", "type": "string" } ], "name": "addHistory", "outputs": [], "stateMutability": "nonpayable", "type": "function" }
@@ -69,11 +68,9 @@
                 web3 = new Web3(window.ethereum);
                 contract = new web3.eth.Contract(contractABI, contractAddress);
                 
-                // 設定日期預設值
                 const today = new Date().toISOString().split('T')[0];
                 document.getElementById('l-date').value = today;
 
-                // 請求錢包授權
                 const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
                 userAccount = accounts[0];
             } else {
@@ -94,19 +91,17 @@
             statusDiv.style.color = "blue";
 
             try {
-                // 🔥 關鍵點：物流只呼叫 addHistory，絕對不呼叫 createProduct
                 await contract.methods.addHistory(id, date, action, note)
                     .send({ from: userAccount });
 
                 statusDiv.innerHTML = "✅ 物流資訊更新成功！";
                 statusDiv.style.color = "green";
                 
-                // 清空備註欄位方便下一筆
+
                 document.getElementById('l-note').value = ""; 
 
             } catch (error) {
                 console.error(error);
-                // 如果報錯，很可能是因為 ID 根本還沒被農夫建立
                 if (error.message.includes("Product ID not found")) {
                     statusDiv.innerHTML = "❌ 錯誤：找不到此產品 ID，請確認農夫是否已建立資料。";
                 } else {
