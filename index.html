@@ -11,9 +11,9 @@
         /* --- 基礎設定 --- */
         body { font-family: 'Microsoft JhengHei', sans-serif; background: #f4f6f8; margin: 0; padding-bottom: 60px; color: #333; }
         
-        /* --- 1. 標題與搜尋區 --- */
+        /* 標題與搜尋區 */
         .header { 
-            background: #1b5e20; /* 深森林綠 */
+            background: #1b5e20; 
             padding: 60px 20px; 
             text-align: center; 
             color: white; 
@@ -54,7 +54,7 @@
         }
         .search-btn:hover { background: #1b5e20; }
 
-        /* 關鍵字提示標籤 */
+        /* 關鍵字標籤 */
         .keyword-tags { margin-top: 15px; font-size: 0.9em; opacity: 0.9; }
         .tag { 
             display: inline-block; border: 1px solid rgba(255,255,255,0.4); 
@@ -70,37 +70,56 @@
         .product-meta { color: #666; font-size: 1rem; line-height: 1.8; }
         .badge { display: inline-block; padding: 4px 12px; border-radius: 15px; background: #eee; font-size: 0.85rem; font-weight: bold; color: #555; }
 
+        /* --- 🔥 新增：可點擊的生產者樣式 --- */
+        .farmer-link {
+            color: #1b5e20;
+            font-weight: bold;
+            text-decoration: underline;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .farmer-link:hover { color: #2e7d32; background: #e8f5e9; padding: 0 5px; border-radius: 5px; }
+
         /* 時間軸樣式 */
         .timeline-header { text-align: center; position: relative; margin: 40px 0 30px; }
         .timeline-header h3 { background: #f4f6f8; display: inline-block; padding: 0 15px; position: relative; z-index: 1; color: #555; }
         .timeline-header::before { content: ''; position: absolute; left: 0; top: 50%; width: 100%; height: 1px; background: #ddd; z-index: 0; }
 
         .timeline { position: relative; padding-left: 30px; border-left: 3px solid #ddd; margin-left: 10px; }
-        
-        .event-card { 
-            background: white; padding: 15px 20px; border-radius: 10px; margin-bottom: 25px; 
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05); position: relative; 
-            border-left: 5px solid #ccc; 
-        }
-        .event-dot { 
-            position: absolute; left: -39px; top: 15px; width: 16px; height: 16px; 
-            border-radius: 50%; border: 3px solid white; box-shadow: 0 0 0 2px #ccc; 
-            background: #ccc;
-        }
-
-        /* 顏色定義 */
+        .event-card { background: white; padding: 15px 20px; border-radius: 10px; margin-bottom: 25px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); position: relative; border-left: 5px solid #ccc; }
+        .event-dot { position: absolute; left: -39px; top: 15px; width: 16px; height: 16px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 0 2px #ccc; background: #ccc; }
         .type-farm { border-left-color: #2e7d32; }
         .type-farm .event-dot { background: #2e7d32; box-shadow: 0 0 0 2px #2e7d32; }
-        
         .type-logistics { border-left-color: #1565c0; }
         .type-logistics .event-dot { background: #1565c0; box-shadow: 0 0 0 2px #1565c0; }
-
         .event-date { font-size: 0.85rem; color: #888; margin-bottom: 5px; }
         .event-title { font-weight: bold; font-size: 1.1rem; }
         .event-detail { margin-top: 5px; color: #444; }
 
-        .loading { text-align: center; padding: 50px; color: #888; font-size: 1.2rem; display: none; }
-        .error-msg { text-align: center; padding: 20px; background: #ffebee; color: #d32f2f; border-radius: 8px; margin-top: 20px; display: none; }
+        .loading, .error-msg { text-align: center; padding: 20px; display: none; }
+        .error-msg { background: #ffebee; color: #d32f2f; border-radius: 8px; margin-top: 20px; }
+
+        /* --- 🔥 新增：農夫簡介彈出視窗 (Modal) --- */
+        .modal-overlay {
+            display: none; /* 預設隱藏 */
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); z-index: 1000;
+            justify-content: center; align-items: center;
+        }
+        .modal-card {
+            background: white; width: 90%; max-width: 400px;
+            border-radius: 15px; padding: 30px; text-align: center;
+            position: relative; box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            animation: fadeIn 0.3s;
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .close-btn { position: absolute; top: 15px; right: 15px; cursor: pointer; font-size: 1.5rem; color: #999; }
+        .farmer-avatar { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; margin-bottom: 15px; border: 4px solid #e8f5e9; }
+        .farmer-name { font-size: 1.5rem; color: #1b5e20; margin-bottom: 5px; font-weight: bold; }
+        .farmer-loc { color: #666; font-size: 0.9rem; margin-bottom: 20px; }
+        .farmer-intro { text-align: left; background: #f9f9f9; padding: 15px; border-radius: 10px; color: #444; line-height: 1.6; font-size: 0.95rem; margin-bottom: 20px; }
+        .contact-btn { display: inline-block; background: #1b5e20; color: white; padding: 10px 20px; border-radius: 20px; text-decoration: none; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -108,22 +127,18 @@
     <div class="header">
         <h1>🔍 荷葉安心農產履歷平台</h1>
         <p>輸入產品名稱或批次編號查詢</p>
-
         <div class="search-box">
-            <input type="text" id="search-input" class="search-input" placeholder="例如：香蕉、P003...">
+            <input type="text" id="search-input" class="search-input" placeholder="例如：香蕉、P005...">
             <button onclick="searchProduct()" class="search-btn">搜尋</button>
         </div>
-
         <div class="keyword-tags">
             熱門搜尋：
             <span class="tag" onclick="quickSearch('香蕉')">香蕉</span>
             <span class="tag" onclick="quickSearch('高麗菜')">高麗菜</span>
-            <span class="tag" onclick="quickSearch('番茄')">番茄</span>
         </div>
     </div>
 
     <div class="container">
-        
         <div id="loading" class="loading">⏳ 正在區塊鏈上搜尋資料...</div>
         <div id="error-msg" class="error-msg"></div>
 
@@ -133,16 +148,22 @@
                 <h1 id="p-name" class="product-title"></h1>
                 <div class="product-meta">
                     <i class="fas fa-map-marker-alt"></i> 產地：<span id="p-loc"></span><br>
-                    <i class="fas fa-user"></i> 生產者：<span id="p-farmer"></span>
+                    <i class="fas fa-user"></i> 生產者：<span id="p-farmer-area"></span>
                 </div>
             </div>
+            <div class="timeline-header"><h3>📦 生產與物流全歷程</h3></div>
+            <div class="timeline" id="timeline-list"></div>
+        </div>
+    </div>
 
-            <div class="timeline-header">
-                <h3>📦 生產與物流全歷程</h3>
-            </div>
-
-            <div class="timeline" id="timeline-list">
-                </div>
+    <div id="farmer-modal" class="modal-overlay" onclick="closeModal(event)">
+        <div class="modal-card">
+            <span class="close-btn" onclick="document.getElementById('farmer-modal').style.display='none'">&times;</span>
+            <img id="m-avatar" src="" alt="農夫照片" class="farmer-avatar">
+            <div id="m-name" class="farmer-name"></div>
+            <div id="m-loc" class="farmer-loc"></div>
+            <div id="m-intro" class="farmer-intro"></div>
+            <a id="m-phone" href="#" class="contact-btn"><i class="fas fa-phone"></i> 聯絡農夫</a>
         </div>
     </div>
 
@@ -153,17 +174,28 @@
             {"inputs":[{"internalType":"string","name":"_id","type":"string"}],"name":"getHistory","outputs":[{"components":[{"internalType":"string","name":"date","type":"string"},{"internalType":"string","name":"action","type":"string"},{"internalType":"string","name":"note","type":"string"},{"internalType":"uint256","name":"timestamp","type":"uint256"},{"internalType":"uint256","name":"phi","type":"uint256"}],"internalType":"struct AgProduct.Record[]","name":"","type":"tuple[]"}],"stateMutability":"view","type":"function"}
         ];
 
-        // 🔥 【重要】關鍵字對照表 🔥
-        // 請在這裡新增您的產品關鍵字
-        // 左邊是「消費者輸入的字」，右邊是「對應的 ID」
+        // 產品關鍵字對照
         const keywordMapping = {
-            "香蕉": "P005",
-            "Banana": "P005",
-            "banana": "P005",
-            "高麗菜": "P003",
-            "Cabbage": "P003",
-            "番茄": "P006",
-            "Tomato": "P006"
+            "香蕉": "P005", "Banana": "P005",
+            "高麗菜": "P003", "Cabbage": "P003"
+        };
+
+        // 🔥 【設定】農夫詳細資料庫 🔥
+        // 請在這裡將您的農夫名字與詳細資料對應起來
+        // 名字必須跟區塊鏈上存的(或 farmer.html 輸入的)完全一樣
+        const farmerProfiles = {
+            "倫好好": {
+                avatar: "https://i.pravatar.cc/300?img=11", // 可以換成真實照片網址
+                location: "台中市太平區",
+                phone: "0912-345-678",
+                intro: "大家好，我是倫好好！堅持使用自然農法，不噴灑化學農藥。希望大家能吃到最純粹、最健康的台灣在地農產品。歡迎來我的農場參觀！"
+            },
+            "何大大": {
+                avatar: "https://i.pravatar.cc/300?img=68",
+                location: "南投縣埔里鎮",
+                phone: "0988-111-222",
+                intro: "專注於高山蔬果種植30年，採用山泉水灌溉，品質保證甜！"
+            }
         };
 
         let web3, contract;
@@ -173,18 +205,13 @@
                 web3 = new Web3(window.ethereum);
                 contract = new web3.eth.Contract(contractABI, contractAddress);
                 console.log("區塊鏈連接成功");
-            } else {
-                alert("請安裝 MetaMask 以獲得最佳體驗");
-            }
+            } else { alert("請安裝 MetaMask"); }
 
-            document.getElementById("search-input").addEventListener("keypress", function(event) {
-                if (event.key === "Enter") {
-                    searchProduct();
-                }
+            document.getElementById("search-input").addEventListener("keypress", function(e) {
+                if (e.key === "Enter") searchProduct();
             });
         };
 
-        // 點擊標籤快速搜尋用
         function quickSearch(keyword) {
             document.getElementById('search-input').value = keyword;
             searchProduct();
@@ -202,55 +229,30 @@
             resultArea.style.display = 'none';
             errorMsg.style.display = 'none';
 
-            // --- 🔎 智慧轉換邏輯 ---
-            // 1. 先去查對照表，看是不是關鍵字 (例如輸入「香蕉」)
-            let searchId = input; 
-            if (keywordMapping[input]) {
-                searchId = keywordMapping[input]; // 轉成 P005
-                console.log(`關鍵字轉換: ${input} -> ${searchId}`);
-            }
-            // 2. 如果對照表沒有，我們就假設使用者輸入的是 ID (例如 P003)，直接去搜
+            let searchId = keywordMapping[input] || input;
 
             try {
                 const p = await contract.methods.getProduct(searchId).call();
-                
-                if (!p[0]) throw new Error(`查無資料 (ID: ${searchId})，請確認輸入正確。`);
+                if (!p[0]) throw new Error(`查無資料 (ID: ${searchId})`);
 
                 document.getElementById('p-id').innerText = searchId;
                 document.getElementById('p-name').innerText = p[0];
                 document.getElementById('p-loc').innerText = p[1];
-                document.getElementById('p-farmer').innerText = p[2];
+                
+                // 🔥 處理農夫名字點擊邏輯
+                const farmerName = p[2]; // 從區塊鏈抓到的名字 (例如: 倫好好)
+                const farmerArea = document.getElementById('p-farmer-area');
+                
+                if (farmerProfiles[farmerName]) {
+                    // 如果資料庫裡有這個農夫，就做成連結
+                    farmerArea.innerHTML = `<span class="farmer-link" onclick="openFarmerModal('${farmerName}')">${farmerName} <i class="fas fa-info-circle"></i></span>`;
+                } else {
+                    // 如果沒有，就顯示純文字
+                    farmerArea.innerText = farmerName;
+                }
 
                 const history = await contract.methods.getHistory(searchId).call();
-                const list = document.getElementById('timeline-list');
-                list.innerHTML = "";
-
-                if(history.length === 0) {
-                    list.innerHTML = "<p style='color:#999; padding-left:10px;'>尚無生長紀錄</p>";
-                } else {
-                    [...history].reverse().forEach(record => {
-                        const div = document.createElement('div');
-                        
-                        let typeClass = "type-farm"; 
-                        const actionText = record.action;
-                        
-                        if (actionText.includes("物流") || 
-                            actionText.includes("配送") || 
-                            actionText.includes("出貨") || 
-                            actionText.includes("運送")) {
-                            typeClass = "type-logistics";
-                        }
-
-                        div.className = `event-card ${typeClass}`;
-                        div.innerHTML = `
-                            <div class="event-dot"></div>
-                            <div class="event-date">${record.date}</div>
-                            <div class="event-title">${record.action}</div>
-                            <div class="event-detail">${record.note}</div>
-                        `;
-                        list.appendChild(div);
-                    });
-                }
+                renderTimeline(history);
 
                 loading.style.display = 'none';
                 resultArea.style.display = 'block';
@@ -258,8 +260,53 @@
             } catch (err) {
                 console.error(err);
                 loading.style.display = 'none';
-                errorMsg.innerHTML = `查詢失敗：<br>找不到關鍵字 "${input}" 對應的產品，或 ID 輸入錯誤。`;
+                errorMsg.innerHTML = `查詢失敗：${err.message}`;
                 errorMsg.style.display = 'block';
+            }
+        }
+
+        function renderTimeline(history) {
+            const list = document.getElementById('timeline-list');
+            list.innerHTML = "";
+            if(history.length === 0) {
+                list.innerHTML = "<p style='color:#999; padding-left:10px;'>尚無紀錄</p>";
+                return;
+            }
+            [...history].reverse().forEach(record => {
+                const div = document.createElement('div');
+                let typeClass = "type-farm"; 
+                if (["物流", "配送", "出貨", "運送"].some(k => record.action.includes(k))) typeClass = "type-logistics";
+
+                div.className = `event-card ${typeClass}`;
+                div.innerHTML = `
+                    <div class="event-dot"></div>
+                    <div class="event-date">${record.date}</div>
+                    <div class="event-title">${record.action}</div>
+                    <div class="event-detail">${record.note}</div>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        // 🔥 開啟農夫簡介視窗
+        function openFarmerModal(name) {
+            const data = farmerProfiles[name];
+            if(!data) return;
+
+            document.getElementById('m-name').innerText = name;
+            document.getElementById('m-avatar').src = data.avatar;
+            document.getElementById('m-loc').innerText = `📍 ${data.location}`;
+            document.getElementById('m-intro').innerText = data.intro;
+            document.getElementById('m-phone').href = `tel:${data.phone}`;
+            
+            const modal = document.getElementById('farmer-modal');
+            modal.style.display = 'flex';
+        }
+
+        // 點擊背景關閉視窗
+        function closeModal(event) {
+            if (event.target.id === 'farmer-modal') {
+                event.target.style.display = 'none';
             }
         }
     </script>
