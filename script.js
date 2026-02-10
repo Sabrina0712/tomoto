@@ -1,19 +1,16 @@
-// 1. 設定你的 Google Sheets CSV 網址
-// ⚠️ 請把引號內的網址換成你剛剛「發布到網路」取得的 CSV 網址
 const yourSheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQInxkTBdo75DOMbUI_-MWYPeHlR6mH_wOrrARxP_RRagbOBal6oeIWsnu6Izr1I6E_F7aMHAYp1Deq/pub?output=csv';
 
 function init() {
-    // 判斷現在是哪一頁
     if (document.getElementById('product-name')) {
-        loadProductPage(); // 執行產品頁邏輯
+        loadProductPage(); 
     } else if (document.getElementById('farmer-title')) {
-        loadFarmerPage();  // ✨ 執行農夫頁邏輯 (新增的)
+        loadFarmerPage();  
     } else if (document.getElementById('searchInput')) {
         console.log("首頁待命中");
     }
 }
 
-// --- 產品頁邏輯 (保持原本樣貌) ---
+
 function loadProductPage() {
     const params = new URLSearchParams(window.location.search);
     const targetId = params.get('id');
@@ -33,9 +30,7 @@ function loadProductPage() {
 
 function renderProduct(data) {
     document.getElementById('product-name').textContent = data.name;
-  // ✅ 請改成這樣 (注意是用 innerHTML)
-    const farmerLink = `<a href="farmer.html?name=${data.farmer}" style="text-decoration:none; color:#10b981; font-weight:bold;">${data.farmer} 🔗</a>`;
-    document.getElementById('farmer-name').innerHTML = farmerLink;
+    const farmerLink = `<a href="farmer.html?name=${data.farmer}" style="text-decoration:none; color:#059669;">${data.farmer} 🔗</a>`;
     document.getElementById('farmer-name').innerHTML = farmerLink;
     
     document.getElementById('location').textContent = data.location;
@@ -58,10 +53,10 @@ function renderProduct(data) {
     timelineBox.innerHTML = timelineHTML;
 }
 
-// --- ✨ 新增：農夫頁邏輯 ---
+
 function loadFarmerPage() {
     const params = new URLSearchParams(window.location.search);
-    const targetFarmer = params.get('name'); // 抓取網址上的 ?name=陳大農
+    const targetFarmer = params.get('name');
 
     if (!targetFarmer) {
         document.getElementById('farmer-title').textContent = "未指定農夫";
@@ -76,7 +71,7 @@ function loadFarmerPage() {
         complete: function(results) {
             const allData = results.data;
             
-            // 篩選出這個農夫的所有產品
+        
             const myProducts = allData.filter(item => item.farmer === targetFarmer);
             
             const listContainer = document.getElementById('farmer-products-list');
@@ -86,7 +81,7 @@ function loadFarmerPage() {
                 return;
             }
 
-            // 產生產品列表 HTML
+       
             let html = "";
             myProducts.forEach(prod => {
                 html += `
@@ -104,6 +99,5 @@ function loadFarmerPage() {
         }
     });
 }
-
 
 init();
