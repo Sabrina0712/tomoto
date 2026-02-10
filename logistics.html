@@ -3,21 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>物流狀態更新系統</title>
+    <title>物流更新系統 (V3)</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.7.4/web3.min.js"></script>
     <style>
-        body { font-family: sans-serif; padding: 20px; background: #e3f2fd; } /* 藍色背景代表物流 */
-        .container { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        body { font-family: 'Microsoft JhengHei', sans-serif; padding: 20px; background: #e3f2fd; }
+        .container { max-width: 600px; margin: 30px auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .form-group { margin-bottom: 20px; }
         h2 { text-align: center; color: #1565c0; }
-        
-        .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: bold; }
-        input, select { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 5px; }
-        
-        button { width: 100%; padding: 12px; background: #1565c0; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 1rem; }
+        label { display: block; margin-bottom: 8px; font-weight: bold; }
+        input, select { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; }
+        button { width: 100%; padding: 15px; background: #1565c0; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 18px; }
         button:hover { background: #0d47a1; }
-
-        .status-msg { margin-top: 20px; text-align: center; font-weight: bold; }
+        #status { margin-top: 20px; text-align: center; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -26,8 +23,13 @@
         <h2>🚚 物流狀態更新</h2>
         
         <div class="form-group">
-            <label>產品 ID </label>
-            <input type="text" id="p-id" placeholder="例如: P003">
+            <label>產品 ID</label>
+            <input type="text" id="p-id" placeholder="例如: P001">
+        </div>
+
+        <div class="form-group">
+            <label>運輸業者名稱 (公司名)</label>
+            <input type="text" id="l-company" placeholder="例如: 順風速運">
         </div>
 
         <div class="form-group">
@@ -36,29 +38,30 @@
         </div>
 
         <div class="form-group">
-            <label>物流狀態 (Action)</label>
+            <label>物流狀態</label>
             <select id="l-action">
-                <option value="物流：已收貨 (In Transit)">📦 物流：已收貨</option>
-                <option value="物流：運送中 (Shipping)">🚚 物流：運送中</option>
-                <option value="物流：集貨中心分理 (Sorting)">🏭 物流：集貨中心</option>
-                <option value="物流：已送達 (Arrived)">✅ 物流：已送達</option>
+                <option value="物流：已收貨">📦 已收貨</option>
+                <option value="物流：運送中">🚚 運送中</option>
+                <option value="物流：集貨中心">🏭 集貨中心</option>
+                <option value="物流：已送達">✅ 已送達</option>
             </select>
         </div>
 
         <div class="form-group">
-            <label>備註 (車號 / 溫度 / 經手人)</label>
-            <input type="text" id="l-note" placeholder="例如: 冷藏車 888-TG, 溫度4度C">
+            <label>備註 / 溫度</label>
+            <input type="text" id="l-note" placeholder="例如: 車號 888-TG (溫度 18°C)">
         </div>
 
         <button onclick="updateLogistics()">上傳物流資訊</button>
-        <div id="status" class="status-msg"></div>
+        <div id="status"></div>
     </div>
 
     <script>
-        const contractAddress = "0x0136f45A37d68630e2C33Bd228C61F20b23a27a5";
+        // 🔥 V3 新合約地址
+        const contractAddress = "0x3984025D6BfaecC4bFDFb9B3b3889427f4764F4D";
         
         const contractABI = [
-            { "inputs": [ { "internalType": "string", "name": "_id", "type": "string" }, { "internalType": "string", "name": "_date", "type": "string" }, { "internalType": "string", "name": "_action", "type": "string" }, { "internalType": "string", "name": "_note", "type": "string" } ], "name": "addHistory", "outputs": [], "stateMutability": "nonpayable", "type": "function" }
+            { "inputs": [ { "internalType": "string", "name": "_id", "type": "string" }, { "internalType": "string", "name": "_date", "type": "string" }, { "internalType": "string", "name": "_transporter", "type": "string" }, { "internalType": "string", "name": "_action", "type": "string" }, { "internalType": "string", "name": "_note", "type": "string" }, { "internalType": "uint256", "name": "_phi", "type": "uint256" }, { "internalType": "uint256", "name": "_manualTimestamp", "type": "uint256" } ], "name": "addHistory", "outputs": [], "stateMutability": "nonpayable", "type": "function" }
         ];
 
         let web3, contract, userAccount;
@@ -67,47 +70,38 @@
             if (window.ethereum) {
                 web3 = new Web3(window.ethereum);
                 contract = new web3.eth.Contract(contractABI, contractAddress);
+                document.getElementById('l-date').value = new Date().toISOString().split('T')[0];
                 
-                const today = new Date().toISOString().split('T')[0];
-                document.getElementById('l-date').value = today;
-
-                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                userAccount = accounts[0];
-            } else {
-                alert("請安裝 MetaMask！");
-            }
+                try {
+                    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    userAccount = accounts[0];
+                    document.getElementById('status').innerHTML = "<span style='color:green'>🟢 已連線錢包</span>";
+                } catch (e) {
+                    document.getElementById('status').innerText = "🔴 連線被拒絕";
+                }
+            } else { alert("請安裝 MetaMask"); }
         };
 
         async function updateLogistics() {
-            const id = document.getElementById('p-id').value.trim();
+            const id = document.getElementById('p-id').value;
+            const company = document.getElementById('l-company').value;
             const date = document.getElementById('l-date').value;
             const action = document.getElementById('l-action').value;
             const note = document.getElementById('l-note').value;
-            const statusDiv = document.getElementById('status');
 
-            if (!id) return alert("請輸入產品 ID");
+            if (!id || !company) return alert("資料不完整");
 
-            statusDiv.innerHTML = "⏳ 等待 MetaMask 確認中...";
-            statusDiv.style.color = "blue";
+            const timestamp = Math.floor(new Date(date).getTime() / 1000);
 
             try {
-                await contract.methods.addHistory(id, date, action, note)
-                    .send({ from: userAccount });
-
-                statusDiv.innerHTML = "✅ 物流資訊更新成功！";
-                statusDiv.style.color = "green";
-                
-
-                document.getElementById('l-note').value = ""; 
-
+                document.getElementById('status').innerText = "⏳ 上傳中...";
+                // 物流端不需要 phi (設為0)
+                await contract.methods.addHistory(id, date, company, action, note, 0, timestamp).send({ from: userAccount });
+                document.getElementById('status').innerText = "✅ 上傳成功！";
+                alert("物流資訊已上鏈");
             } catch (error) {
                 console.error(error);
-                if (error.message.includes("Product ID not found")) {
-                    statusDiv.innerHTML = "❌ 錯誤：找不到此產品 ID，請確認農夫是否已建立資料。";
-                } else {
-                    statusDiv.innerHTML = "❌ 更新失敗：" + error.message;
-                }
-                statusDiv.style.color = "red";
+                document.getElementById('status').innerText = "❌ 失敗：" + error.message;
             }
         }
     </script>
