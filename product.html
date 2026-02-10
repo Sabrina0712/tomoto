@@ -107,11 +107,7 @@
     </div>
 
     <script>
-        // ✅ 修正點 1：使用與農夫端完全一致的合約地址
         const contractAddress = "0x0136f45A37d68630e2C33Bd228C61F20b23a27a5"; 
-
-        // ✅ 修正點 2：補上讀取歷史紀錄 (getHistory) 的 ABI
-        // 為了確保能讀取，這裡使用了完整的 ABI 定義
         const contractABI = [
             {"inputs":[{"internalType":"string","name":"_id","type":"string"}],"name":"getProduct","outputs":[{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
             {"inputs":[{"internalType":"string","name":"_id","type":"string"}],"name":"getHistory","outputs":[{"components":[{"internalType":"string","name":"date","type":"string"},{"internalType":"string","name":"action","type":"string"},{"internalType":"string","name":"note","type":"string"},{"internalType":"uint256","name":"timestamp","type":"uint256"},{"internalType":"uint256","name":"phi","type":"uint256"}],"internalType":"struct AgProduct.Record[]","name":"","type":"tuple[]"}],"stateMutability":"view","type":"function"}
@@ -119,9 +115,8 @@
 
         let web3, contract;
 
-        // 初始化
+
         window.onload = async function() {
-            // 優先嘗試連接 MetaMask，如果沒有則使用公共節點 (這裡簡化為必須有 MetaMask)
             if (window.ethereum) {
                 web3 = new Web3(window.ethereum);
                 contract = new web3.eth.Contract(contractABI, contractAddress);
@@ -147,8 +142,6 @@
             errorMsg.style.display = 'none';
 
             try {
-                // 1. 讀取產品基本資料
-                // 對應合約回傳：name, location, farmer, photoUrl, unlockTimestamp
                 const p = await contract.methods.getProduct(id).call();
                 
                 if (!p[0]) throw new Error("查無此 ID，請確認農夫端是否已註冊成功。");
@@ -166,7 +159,6 @@
                     document.getElementById('no-img-text').style.display = 'block';
                 }
 
-                // 2. 讀取歷史紀錄
                 const history = await contract.methods.getHistory(id).call();
                 const list = document.getElementById('timeline-list');
                 list.innerHTML = "";
@@ -174,7 +166,6 @@
                 if(history.length === 0) {
                     list.innerHTML = "<p style='color:#999; padding-left:10px;'>尚無生長紀錄</p>";
                 } else {
-                    // 反轉陣列，讓最新的顯示在最上面
                     [...history].reverse().forEach(record => {
                         const div = document.createElement('div');
                         div.className = "event-card type-farm";
