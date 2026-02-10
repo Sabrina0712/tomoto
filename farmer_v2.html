@@ -3,25 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>農夫智慧管理後台 (修復版)</title>
+    <title>農夫智慧管理後台</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.7.4/web3.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         body { font-family: 'Microsoft JhengHei', sans-serif; background: #f4f7f6; padding: 20px; color: #333; }
         .container { max-width: 900px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
         
-        /* 分頁按鈕 */
+ 
         .tab-buttons { display: flex; gap: 10px; margin-bottom: 25px; border-bottom: 2px solid #eee; padding-bottom: 10px; flex-wrap: wrap; }
         .tab-btn { flex: 1; padding: 12px; cursor: pointer; background: #f0f0f0; border: none; border-radius: 8px 8px 0 0; font-weight: bold; font-size: 1rem; color: #555; transition: 0.3s; min-width: 150px; }
         .tab-btn:hover { background: #e0e0e0; }
         .tab-btn.active { background: #2e7d32; color: white; transform: translateY(2px); }
 
-        /* 區塊顯示控制 */
+       
         .form-section { display: none; animation: fadeIn 0.4s; }
         .form-section.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* 表單樣式 */
+
         h2 { margin-top: 0; color: #2e7d32; border-left: 5px solid #2e7d32; padding-left: 10px; }
         label { font-weight: bold; display: block; margin-bottom: 5px; margin-top: 15px; }
         input, select, textarea { width: 100%; padding: 12px; margin-bottom: 5px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 1rem; }
@@ -34,18 +34,14 @@
         .btn-blue:hover { background: #0d47a1; }
         .btn-orange { background: #ff9800; color: white; }
         
-        /* 施藥專區樣式 */
         .pesticide-box { background: #ffebee; padding: 15px; border-radius: 8px; border: 1px solid #ffcdd2; display: none; margin-top: 15px; }
         .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         .full-width { grid-column: span 2; }
         .warning-text { font-size: 0.9em; color: #c62828; margin-top: 5px; }
         
-      /* 狀態徽章 */
     .status-badge { 
-        /* display: inline-block;  <-- 這一行刪掉，或像這樣註解起來 */
         padding: 5px 10px; 
         border-radius: 20px; 
-        /* ...其他保持不變 */
         float: right;
     }
 
@@ -80,7 +76,7 @@
     </div>
 
     <div id="section-profile" class="form-section active">
-        <h2>👨‍🌾 設定農夫履歷</h2>
+        <h2>設定農夫履歷</h2>
         <p style="color:#666; font-size:0.9rem;">設定一次即可，未來建立產品時會自動帶入您的名字。</p>
         
         <label>您的姓名 (ID)</label>
@@ -123,7 +119,7 @@
     </div>
 
     <div id="section-record" class="form-section">
-        <h2>📝 新增生長/施藥紀錄</h2>
+        <h2>📝新增生長/施藥紀錄</h2>
         
         <label>產品 ID</label>
         <input type="text" id="rec-id" placeholder="輸入產品 ID">
@@ -185,19 +181,13 @@
 </div>
 
 <script>
-    // --- 1. 初始化設定 ---
     const contractAddress = "0x0136f45A37d68630e2C33Bd228C61F20b23a27a5";
-    
-    // 壓縮後的 ABI，防止複製出錯
     const contractABI = [{"inputs":[{"internalType":"string","name":"_id","type":"string"},{"internalType":"string","name":"_date","type":"string"},{"internalType":"string","name":"_action","type":"string"},{"internalType":"string","name":"_note","type":"string"},{"internalType":"uint256","name":"_phi","type":"uint256"},{"internalType":"uint256","name":"_dateTimestamp","type":"uint256"}],"name":"addHistory","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"string","name":"_name","type":"string"},{"internalType":"string","name":"_location","type":"string"},{"internalType":"string","name":"_desc","type":"string"},{"internalType":"string","name":"_photo","type":"string"},{"internalType":"string","name":"_contact","type":"string"}],"name":"updateFarmerProfile","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"string","name":"_id","type":"string"},{"internalType":"string","name":"_name","type":"string"},{"internalType":"string","name":"_loc","type":"string"},{"internalType":"string","name":"_farmer","type":"string"},{"internalType":"string","name":"_photo","type":"string"}],"name":"registerProduct","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"string","name":"_id","type":"string"}],"name":"getProduct","outputs":[{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"}];
 
     let web3;
     let contract;
     let userAccount;
 
-    // --- 2. 工具函式 ---
-    
-    // 通用日期格式化 (YYYY-MM-DD)
     function formatDate(date) {
         const year = date.getFullYear();
         const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -205,27 +195,23 @@
         return `${year}-${month}-${day}`;
     }
 
-    // 分頁切換 (修復版)
+
     function switchTab(btnElement, tabName) {
-        // 隱藏所有區塊
         const sections = document.querySelectorAll('.form-section');
         for(let i=0; i<sections.length; i++) {
             sections[i].style.display = 'none';
         }
         
-        // 移除所有按鈕的 active 樣式
         const buttons = document.querySelectorAll('.tab-btn');
         for(let i=0; i<buttons.length; i++) {
             buttons[i].classList.remove('active');
         }
 
-        // 顯示目標區塊並啟用按鈕
         document.getElementById('section-' + tabName).style.display = 'block';
         if(btnElement) {
             btnElement.classList.add('active');
         }
 
-        // 自動帶入邏輯
         if(tabName === 'product') {
             const fName = document.getElementById('f-name').value;
             document.getElementById('p-farmer').value = fName;
@@ -237,7 +223,6 @@
         }
     }
 
-    // 檢查錢包連線
     async function checkConnection() {
         if (typeof window.ethereum !== 'undefined') {
             try {
@@ -262,14 +247,10 @@
         }
     }
 
-    // --- 3. 主要功能邏輯 ---
-
-    // 頁面載入時執行
     window.onload = function() {
         setGeneralDateLimit(); 
     }
 
-    // (1) 更新個人檔案
     async function updateProfile() {
         if (!await checkConnection()) return;
         
@@ -288,7 +269,7 @@
         } catch (err) { alert("❌ 失敗：" + err.message); }
     }
 
-    // (2) 註冊產品
+
     async function registerProduct() {
         if (!await checkConnection()) return;
         
@@ -306,7 +287,6 @@
         } catch (err) { alert("交易失敗: " + err.message); }
     }
 
-    // (3) 新增紀錄與日期控制
     function setGeneralDateLimit() {
         const dateInput = document.getElementById("rec-date");
         const today = new Date();
@@ -332,7 +312,7 @@
         const todayStr = formatDate(today);
         
         dateInput.value = todayStr;
-        dateInput.disabled = true; // 禁止修改
+        dateInput.disabled = true;
         
         const hint = document.getElementById("date-hint");
         hint.innerHTML = "<b style='color:red;'>🚫 施藥作業必須當日申報，無法修改日期。</b>";
@@ -367,7 +347,6 @@
         let actionStr = "";
         let phi = 0;
 
-        // 依據類型組裝資料
         if (type.includes("施藥")) {
             dateVal = new Date().toISOString().split('T')[0]; // 強制當天
             const pName = document.getElementById("pest-name").value;
@@ -385,7 +364,6 @@
             const limit = new Date();
             limit.setDate(today.getDate() - 14);
             
-            // 時間歸零以進行比較
             selDate.setHours(0,0,0,0); today.setHours(0,0,0,0); limit.setHours(0,0,0,0);
             
             if (selDate < limit) return alert("❌ 錯誤：不能補登超過 14 天前的紀錄");
@@ -404,14 +382,13 @@
             if (phi > 0) msg += `\n⚠️ 依據 PHI 規定，此產品將鎖定 ${phi} 天禁止採收。`;
             alert(msg);
             
-            // 清空欄位
             document.getElementById("rec-detail").value = "";
             document.getElementById("pest-name").value = "";
             document.getElementById("rec-note").value = "";
         } catch (err) { alert("交易失敗: " + err.message); }
     }
 
-    // (4) 狀態查詢
+
     async function checkStatus() {
         if (!await checkConnection()) return;
         const id = document.getElementById("query-id").value.trim();
@@ -419,7 +396,6 @@
         
         try {
             const p = await contract.methods.getProduct(id).call();
-            // p[0] 是名稱
             if(!p[0]) throw new Error("查無此 ID，請確認是否已註冊。");
             
             const resultBox = document.getElementById("status-result");
