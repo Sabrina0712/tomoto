@@ -3,62 +3,147 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>物流更新系統 (V3)</title>
+    <title>物流狀態更新系統</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.7.4/web3.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Microsoft JhengHei', sans-serif; padding: 20px; background: #e3f2fd; }
-        .container { max-width: 600px; margin: 30px auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        body { 
+            font-family: 'Noto Sans TC', sans-serif; 
+            background: #eef2f5; 
+            padding: 20px; 
+            display: flex; 
+            justify-content: center; 
+            min-height: 100vh;
+        }
+        
+        .main-card {
+            background: white;
+            width: 100%;
+            max-width: 600px;
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.08);
+            padding: 40px;
+            position: relative;
+            margin-top: 20px;
+        }
+
+        /* 標題區 */
+        .header { text-align: center; margin-bottom: 30px; }
+        .header h2 { margin: 0; color: #1565c0; font-size: 1.8rem; }
+        .header p { color: #888; margin-top: 5px; font-size: 0.9rem; }
+        .icon-circle {
+            width: 60px; height: 60px; background: #e3f2fd; color: #1565c0;
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-size: 1.5rem; margin: 0 auto 15px auto;
+        }
+
+        /* 表單樣式 */
         .form-group { margin-bottom: 20px; }
-        h2 { text-align: center; color: #1565c0; }
-        label { display: block; margin-bottom: 8px; font-weight: bold; }
-        input, select { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; }
-        button { width: 100%; padding: 15px; background: #1565c0; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 18px; }
-        button:hover { background: #0d47a1; }
-        #status { margin-top: 20px; text-align: center; font-weight: bold; }
+        label { display: block; margin-bottom: 8px; font-weight: bold; color: #444; font-size: 0.95rem; }
+        
+        /* 輸入框美化 */
+        .input-wrapper { position: relative; }
+        .input-wrapper i { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #999; }
+        
+        input, select { 
+            width: 100%; padding: 12px 12px 12px 40px; /* 留位置給 icon */
+            border: 2px solid #e0e0e0; border-radius: 10px; 
+            font-size: 1rem; box-sizing: border-box; transition: 0.3s;
+            font-family: inherit;
+        }
+        input:focus, select:focus { border-color: #1565c0; outline: none; background: #fdfdfd; }
+        
+        /* 按鈕美化 */
+        button.submit-btn { 
+            width: 100%; padding: 15px; background: linear-gradient(90deg, #1565c0, #0d47a1); 
+            color: white; border: none; border-radius: 10px; cursor: pointer; 
+            font-size: 1.1rem; font-weight: bold; margin-top: 10px;
+            box-shadow: 0 5px 15px rgba(21, 101, 192, 0.3); transition: 0.3s;
+        }
+        button.submit-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(21, 101, 192, 0.4); }
+
+        /* 狀態列 */
+        .status-bar {
+            position: absolute; top: -15px; right: 20px;
+            background: #ffebee; color: #c62828; padding: 6px 15px;
+            border-radius: 20px; font-size: 0.85rem; font-weight: bold;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 5px;
+        }
+        .status-bar.connected { background: #e8f5e9; color: #2e7d32; }
+
+        /* 兩欄排版 (日期與狀態) */
+        .row { display: flex; gap: 15px; }
+        .col { flex: 1; }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <h2>🚚 物流狀態更新</h2>
+    <div class="main-card">
+        <div id="wallet-status" class="status-bar">
+            <i class="fas fa-circle" style="font-size:8px;"></i> 尚未連線
+        </div>
+
+        <div class="header">
+            <div class="icon-circle"><i class="fas fa-shipping-fast"></i></div>
+            <h2>物流狀態更新</h2>
+            <p>請輸入產品運送的最新節點資訊</p>
+        </div>
         
         <div class="form-group">
-            <label>產品 ID</label>
-            <input type="text" id="p-id" placeholder="例如: P001">
+            <label>📦 產品 ID</label>
+            <div class="input-wrapper">
+                <i class="fas fa-barcode"></i>
+                <input type="text" id="p-id" placeholder="例如: P001">
+            </div>
         </div>
 
         <div class="form-group">
-            <label>運輸業者名稱 (公司名)</label>
-            <input type="text" id="l-company" placeholder="例如: 順風速運">
+            <label>🏢 運輸業者名稱</label>
+            <div class="input-wrapper">
+                <i class="fas fa-building"></i>
+                <input type="text" id="l-company" placeholder="例如: 順風速運">
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col form-group">
+                <label>📅 更新日期</label>
+                <div class="input-wrapper">
+                    <i class="fas fa-calendar-alt"></i>
+                    <input type="date" id="l-date">
+                </div>
+            </div>
+            <div class="col form-group">
+                <label>📍 物流狀態</label>
+                <div class="input-wrapper">
+                    <i class="fas fa-map-marker-alt"></i>
+                    <select id="l-action">
+                        <option value="物流：已收貨">📦 已收貨</option>
+                        <option value="物流：運送中">🚚 運送中</option>
+                        <option value="物流：集貨中心">🏭 集貨中心</option>
+                        <option value="物流：已送達">✅ 已送達</option>
+                    </select>
+                </div>
+            </div>
         </div>
 
         <div class="form-group">
-            <label>更新日期</label>
-            <input type="date" id="l-date">
+            <label>📝 備註 / 溫度監控</label>
+            <div class="input-wrapper">
+                <i class="fas fa-thermometer-half"></i>
+                <input type="text" id="l-note" placeholder="例如: 車號 888-TG (溫度 18°C)">
+            </div>
         </div>
 
-        <div class="form-group">
-            <label>物流狀態</label>
-            <select id="l-action">
-                <option value="物流：已收貨">📦 已收貨</option>
-                <option value="物流：運送中">🚚 運送中</option>
-                <option value="物流：集貨中心">🏭 集貨中心</option>
-                <option value="物流：已送達">✅ 已送達</option>
-            </select>
-        </div>
-
-        <div class="form-group">
-            <label>備註 / 溫度</label>
-            <input type="text" id="l-note" placeholder="例如: 車號 888-TG (溫度 18°C)">
-        </div>
-
-        <button onclick="updateLogistics()">上傳物流資訊</button>
-        <div id="status"></div>
+        <button class="submit-btn" onclick="updateLogistics()">
+            <i class="fas fa-cloud-upload-alt"></i> 上傳物流資訊
+        </button>
     </div>
 
     <script>
-        // 🔥 V3 新合約地址
-        const contractAddress = "0x3984025D6BfaecC4bFDFb9B3b3889427f4764F4D";
+        // ⚠️ 合約地址 (V3)
+        const contractAddress = "0x842ae6a239902C5ccb0b71EF01D3c4c6B21816F3"
         
         const contractABI = [
             { "inputs": [ { "internalType": "string", "name": "_id", "type": "string" }, { "internalType": "string", "name": "_date", "type": "string" }, { "internalType": "string", "name": "_transporter", "type": "string" }, { "internalType": "string", "name": "_action", "type": "string" }, { "internalType": "string", "name": "_note", "type": "string" }, { "internalType": "uint256", "name": "_phi", "type": "uint256" }, { "internalType": "uint256", "name": "_manualTimestamp", "type": "uint256" } ], "name": "addHistory", "outputs": [], "stateMutability": "nonpayable", "type": "function" }
@@ -67,20 +152,31 @@
         let web3, contract, userAccount;
 
         window.onload = async function() {
+            document.getElementById('l-date').value = new Date().toISOString().split('T')[0];
+            
             if (window.ethereum) {
                 web3 = new Web3(window.ethereum);
                 contract = new web3.eth.Contract(contractABI, contractAddress);
-                document.getElementById('l-date').value = new Date().toISOString().split('T')[0];
-                
                 try {
                     const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
                     userAccount = accounts[0];
-                    document.getElementById('status').innerHTML = "<span style='color:green'>🟢 已連線錢包</span>";
+                    updateStatus(true);
                 } catch (e) {
-                    document.getElementById('status').innerText = "🔴 連線被拒絕";
+                    updateStatus(false);
                 }
             } else { alert("請安裝 MetaMask"); }
         };
+
+        function updateStatus(isConnected) {
+            const el = document.getElementById('wallet-status');
+            if(isConnected) {
+                el.innerHTML = `<i class="fas fa-circle" style="font-size:8px;"></i> 已連線: ${userAccount.substring(0,6)}...`;
+                el.classList.add('connected');
+            } else {
+                el.innerText = "尚未連線 / 拒絕存取";
+                el.classList.remove('connected');
+            }
+        }
 
         async function updateLogistics() {
             const id = document.getElementById('p-id').value;
@@ -92,16 +188,23 @@
             if (!id || !company) return alert("資料不完整");
 
             const timestamp = Math.floor(new Date(date).getTime() / 1000);
+            const btn = document.querySelector('.submit-btn');
 
             try {
-                document.getElementById('status').innerText = "⏳ 上傳中...";
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 上傳中...';
+                btn.style.background = '#888';
+                
                 // 物流端不需要 phi (設為0)
                 await contract.methods.addHistory(id, date, company, action, note, 0, timestamp).send({ from: userAccount });
-                document.getElementById('status').innerText = "✅ 上傳成功！";
-                alert("物流資訊已上鏈");
+                
+                alert("✅ 物流資訊已成功寫入區塊鏈！");
+                // 重置按鈕
+                btn.innerHTML = '<i class="fas fa-cloud-upload-alt"></i> 上傳物流資訊';
+                btn.style.background = 'linear-gradient(90deg, #1565c0, #0d47a1)';
             } catch (error) {
                 console.error(error);
-                document.getElementById('status').innerText = "❌ 失敗：" + error.message;
+                alert("❌ 失敗：" + error.message);
+                btn.innerHTML = '重試上傳';
             }
         }
     </script>
