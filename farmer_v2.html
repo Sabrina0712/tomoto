@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>農夫生產管理系統 (New Contract)</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.7.4/web3.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { font-family: 'Microsoft JhengHei', sans-serif; background: #f4f7f6; padding: 20px; color: #333; }
+        .container { max-width: 900px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .tab-buttons { display: flex; gap: 10px; margin-bottom: 25px; border-bottom: 2px solid #eee; padding-bottom: 10px; flex-wrap: wrap; }
+        .tab-btn { flex: 1; padding: 12px; cursor: pointer; background: #f0f0f0; border: none; border-radius: 8px 8px 0 0; font-weight: bold; transition: 0.3s; min-width: 150px; }
+        .tab-btn.active { background: #2e7d32; color: white; transform: translateY(2px); }
+        .form-section { display: none; }
+        .form-section.active { display: block; animation: fadeIn 0.4s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        label { font-weight: bold; display: block; margin-bottom: 5px; margin-top: 15px; }
+        input, select, textarea { width: 100%; padding: 12px; margin-bottom: 5px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
+        button.action-btn { width: 100%; padding: 12px; border: none; border-radius: 6px; font-size: 1.1rem; cursor: pointer; font-weight: bold; margin-top: 20px; color: white; transition: 0.2s; }
+        .btn-green { background: #2e7d32; } .btn-green:hover { background: #1b5e20; }
+        .btn-blue { background: #1565c0; } .btn-blue:hover { background: #0d47a1; }
+        .status-badge { padding: 5px 10px; border-radius: 20px; float: right; cursor: pointer; background: #ffebee; color: #c62828; border: 1px solid #ffcdd2; }
+        .status-badge.connected { background: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; }
+        .pesticide-box { background: #fff3e0; padding: 15px; border-radius: 8px; border: 1px solid #ffe0b2; display: none; margin-top: 15px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div id="wallet-status" class="status-badge" onclick="checkConnection()">🔴 未連線 (點擊連線)</div>
+    
+    <div class="tab-buttons">
+        <button class="tab-btn active" onclick="switchTab('profile')">1. 設定公司</button>
+        <button class="tab-btn" onclick="switchTab('product')">2. 註冊產品</button>
+        <button class="tab-btn" onclick="switchTab('record')">3. 新增紀錄</button>
+        <button class="tab-btn" onclick="switchTab('check')">4. 檢查狀態</button>
+    </div>
+
+    <div id="section-profile" class="form-section active">
+        <h2>🏢 公司/農場檔案設定</h2>
+        <p style="background:#e3f2fd; padding:10px; border-radius:5px;"><i class="fas fa-exclamation-circle"></i> 新合約已部署，請先在此註冊您的公司資訊。</p>
+        <label>公司名稱</label><input type="text" id="f-brand" placeholder="例如: 快樂農場">
+        <label>聯絡電話</label><input type="text" id="f-contact" placeholder="例如: 0912-345-678">
+        <label>簡介</label><textarea id="f-bio" rows="3" placeholder="簡述農場理念..."></textarea>
+        <label>Logo 圖片網址</label><input type="text" id="f-photo" placeholder="https://...">
+        <button class="action-btn btn-green" onclick="updateCompanyProfile()">儲存檔案上鏈</button>
+    </div>
+
+    <div id="section-product" class="form-section">
+        <h2>🌱 註冊新產品</h2>
+        <label>所屬公司</label><input type="text" id="p-company" placeholder="請先設定公司檔案" readonly style="background:#eee;">
+        <label>產品 ID</label><input type="text" id="p-id" placeholder="例如: P001">
+        <label>產品名稱</label><input type="text" id="p-name" placeholder="例如: 高山高麗菜">
+        <label>產地</label><input type="text" id="p-location" placeholder="例如: 台中市">
+        <label>產品照片網址</label><input type="text" id="p-photo" placeholder="https://...">
+        <button class="action-btn btn-green" onclick="registerProduct()">註冊產品上鏈</button>
+    </div>
+
+    <div id="section-record" class="form-section">
+        <h2>📝 新增生長/物流紀錄</h2>
+        <label>產品 ID</label><input type="text" id="rec-id" placeholder="輸入產品 ID">
+        <label>動作類型</label>
+        <select id="rec-process" onchange="handleProcessChange()">
+            <option value="耕地管理">耕地管理</option>
+            <option value="種植">種植 / 育苗</option>
+            <option value="施肥">施肥</option>
+            <option value="施藥">☠️ 施藥 (需填安全採收期)</option>
+            <option value="採收">採收</option>
+            <option value="物流配送">🚚 物流配送</option>
+        </select>
+        
+        <label>執行日期</label>
+        <input type="date" id="rec-date">
+        <small id="date-hint" style="color:#666;"></small>
+
+        <div id="normal-inputs" style="margin-top: 15px;">
+            <label>詳細內容</label><input type="text" id="rec-detail" placeholder="例如: 使用有機肥 / 順豐物流">
+        </div>
+
+        <div id="pesticide-inputs" class="pesticide-box">
+            <h4 style="margin:0 0 10px 0; color:#e65100;">⚠️ 施藥管制資料</h4>
+            <label>藥品名稱</label><input type="text" id="pest-name" placeholder="例如: 納乃得">
+            <label>稀釋倍數</label><input type="text" id="pest-dose" placeholder="例如: 1000倍">
+            <label>安全採收期 (PHI 天數)</label><input type="number" id="pest-phi" placeholder="例如: 7">
+        </div>
+        
+        <label>備註 (選填)</label><input type="text" id="rec-note" placeholder="其他補充事項...">
+        <button class="action-btn btn-blue" onclick="addRecord()">➕ 新增紀錄上鏈</button>
+    </div>
+
+    <div id="section-check" class="form-section">
+        <h2>🔎 狀態自我檢查</h2>
+        <input type="text" id="query-id" placeholder="輸入產品 ID">
+        <button class="action-btn btn-blue" style="margin-top:10px;" onclick="checkStatus()">查詢</button>
+        <div id="status-result" style="margin-top:20px; padding:15px; background:#fff; border:1px solid #ddd; display:none;"></div>
+    </div>
+</div>
+
+<script>
+    // 🔥 新合約地址
+    const contractAddress = "0x305255Adb4F3797F75F1e0a58fC622cF784Ea599";
+
+    const contractABI = [
+        { "inputs": [ { "internalType": "string", "name": "_id", "type": "string" }, { "internalType": "string", "name": "_date", "type": "string" }, { "internalType": "string", "name": "_transporter", "type": "string" }, { "internalType": "string", "name": "_action", "type": "string" }, { "internalType": "string", "name": "_note", "type": "string" }, { "internalType": "uint256", "name": "_phi", "type": "uint256" }, { "internalType": "uint256", "name": "_manualTimestamp", "type": "uint256" } ], "name": "addHistory", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
+        { "inputs": [ { "internalType": "string", "name": "_id", "type": "string" }, { "internalType": "string", "name": "_name", "type": "string" }, { "internalType": "string", "name": "_loc", "type": "string" }, { "internalType": "string", "name": "_companyName", "type": "string" }, { "internalType": "string", "name": "_photoUrl", "type": "string" } ], "name": "registerProduct", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
+        { "inputs": [ { "internalType": "string", "name": "_name", "type": "string" }, { "internalType": "string", "name": "_contact", "type": "string" }, { "internalType": "string", "name": "_bio", "type": "string" }, { "internalType": "string", "name": "_photoUrl", "type": "string" } ], "name": "updateCompanyProfile", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
+        { "inputs": [ { "internalType": "string", "name": "_id", "type": "string" } ], "name": "getProduct", "outputs": [ { "internalType": "string", "name": "", "type": "string" }, { "internalType": "string", "name": "", "type": "string" }, { "internalType": "string", "name": "", "type": "string" }, { "internalType": "string", "name": "", "type": "string" }, { "internalType": "string", "name": "", "type": "string" } ], "stateMutability": "view", "type": "function" }
+    ];
+
+    let web3, contract, userAccount;
+    let currentCompanyName = "";
+
+    window.onload = function() { setGeneralDateLimit(); }
+
+   function switchTab(tabName) {
+        // 1. 先隱藏所有區塊
+        document.querySelectorAll('.form-section').forEach(el => el.style.display = 'none');
+        document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+        
+        // 2. 顯示指定的區塊
+        document.getElementById('section-' + tabName).style.display = 'block';
+        
+        // 3. (修正點) 改用笨方法來亮燈，不要用 event.target
+        // 這樣不管是自動切換還是手動點擊，都不會報錯
+        if(tabName == 'profile') document.querySelector("button[onclick*='profile']").classList.add('active');
+        if(tabName == 'product') document.querySelector("button[onclick*='product']").classList.add('active');
+        if(tabName == 'record') document.querySelector("button[onclick*='record']").classList.add('active');
+        if(tabName == 'check') document.querySelector("button[onclick*='check']").classList.add('active');
+
+        // 4. 自動帶入公司名稱
+        if(tabName === 'product' && currentCompanyName) {
+            document.getElementById('p-company').value = currentCompanyName;
+        }
+    }
+
+    function setGeneralDateLimit() {
+        const d = document.getElementById("rec-date");
+        const today = new Date().toISOString().split('T')[0];
+        const past = new Date(); past.setDate(new Date().getDate() - 14);
+        d.max = today; d.min = past.toISOString().split('T')[0];
+        d.value = today; d.disabled = false;
+        document.getElementById("date-hint").innerText = "一般作業可補登 14 天內紀錄";
+    }
+
+    function setPesticideDateLimit() {
+        const d = document.getElementById("rec-date");
+        const today = new Date().toISOString().split('T')[0];
+        d.value = today; d.disabled = true;
+        document.getElementById("date-hint").innerHTML = "<b style='color:red'>施藥作業限制僅能登錄當日</b>";
+    }
+
+    function handleProcessChange() {
+        const val = document.getElementById("rec-process").value;
+        if(val === "施藥") {
+            document.getElementById("pesticide-inputs").style.display = "block";
+            document.getElementById("normal-inputs").style.display = "none";
+            setPesticideDateLimit();
+        } else {
+            document.getElementById("pesticide-inputs").style.display = "none";
+            document.getElementById("normal-inputs").style.display = "block";
+            setGeneralDateLimit();
+        }
+    }
+
+    async function checkConnection() {
+        if (window.ethereum) {
+            web3 = new Web3(window.ethereum);
+            try {
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                userAccount = accounts[0];
+                contract = new web3.eth.Contract(contractABI, contractAddress);
+                document.getElementById('wallet-status').innerText = "🟢 已連線: " + userAccount.substring(0,6) + "...";
+                document.getElementById('wallet-status').classList.add('connected');
+                return true;
+            } catch (e) { alert("使用者拒絕連線"); return false; }
+        } else { alert("請安裝 MetaMask"); return false; }
+    }
+
+    async function updateCompanyProfile() {
+        if (!await checkConnection()) return;
+        const name = document.getElementById('f-brand').value;
+        const contact = document.getElementById('f-contact').value;
+        const bio = document.getElementById('f-bio').value;
+        const photo = document.getElementById('f-photo').value;
+
+        if(!name) return alert("公司名稱為必填");
+
+        try {
+            await contract.methods.updateCompanyProfile(name, contact, bio, photo).send({ from: userAccount });
+            alert("✅ 公司資料更新成功！");
+            currentCompanyName = name;
+            switchTab('product');
+        } catch (e) { alert("交易失敗: " + e.message); }
+    }
+
+    async function registerProduct() {
+        if (!await checkConnection()) return;
+        const id = document.getElementById("p-id").value;
+        const name = document.getElementById("p-name").value;
+        const loc = document.getElementById("p-location").value;
+        const company = document.getElementById("p-company").value;
+        const photo = document.getElementById("p-photo").value;
+
+        if(!id || !company) return alert("ID 與公司名稱為必填");
+
+        try {
+            await contract.methods.registerProduct(id, name, loc, company, photo).send({ from: userAccount });
+            alert("✅ 產品註冊成功！");
+            document.getElementById("rec-id").value = id; // 自動填入下一頁
+            switchTab('record');
+        } catch (e) { alert("交易失敗: " + e.message); }
+    }
+
+    async function addRecord() {
+        if (!await checkConnection()) return;
+        
+        const id = document.getElementById("rec-id").value;
+        const type = document.getElementById("rec-process").value;
+        let dateVal = document.getElementById("rec-date").value;
+        const note = document.getElementById("rec-note").value;
+        
+        let actionStr = "";
+        let phi = 0;
+
+        // 根據類型組裝字串
+        if (type === "施藥") {
+            dateVal = new Date().toISOString().split('T')[0]; // 強制今天
+            const pName = document.getElementById("pest-name").value;
+            const pDose = document.getElementById("pest-dose").value;
+            phi = document.getElementById("pest-phi").value;
+            if(!pName || !phi) return alert("施藥名稱與 PHI 值必填");
+            actionStr = `施藥: ${pName} / 倍數: ${pDose}`;
+        } else {
+            const detail = document.getElementById("rec-detail").value;
+            actionStr = `${type}: ${detail}`;
+        }
+
+        // 計算 Timestamp
+        const timestamp = Math.floor(new Date(dateVal).getTime() / 1000);
+
+        try {
+            // 注意參數順序: id, date, transporter(空), action, note, phi, timestamp
+            await contract.methods.addHistory(id, dateVal, "", actionStr, note, phi, timestamp)
+                .send({ from: userAccount });
+            alert("✅ 紀錄上鏈成功！");
+        } catch (e) { 
+            console.error(e);
+            alert("交易失敗，請檢查 Console 或確認是否拒絕了交易。"); 
+        }
+    }
+
+    async function checkStatus() {
+        if (!await checkConnection()) return;
+        const id = document.getElementById('query-id').value;
+        const box = document.getElementById('status-result');
+        try {
+            const p = await contract.methods.getProduct(id).call();
+            if(!p[0]) {
+                box.innerHTML = "<span style='color:red'>查無此 ID，請先註冊。</span>";
+            } else {
+                box.innerHTML = `<span style='color:green'><b>${p[1]}</b> 已存在 (公司: ${p[3]})</span>`;
+            }
+            box.style.display = 'block';
+        } catch(e) { alert("查詢錯誤"); }
+    }
+</script>
+</body>
+</html>

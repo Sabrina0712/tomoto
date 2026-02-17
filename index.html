@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>消費者履歷查詢系統</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.7.4/web3.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root { --primary: #2e7d32; --active-blue: #1565c0; --bg: #f5f7fa; }
+        body { font-family: 'Noto Sans TC', sans-serif; background-color: var(--bg); margin: 0; padding-bottom: 50px; color: #333; }
+        .hero { background: linear-gradient(135deg, #43a047 0%, #1b5e20 100%); color: white; padding: 40px 20px 60px 20px; text-align: center; border-radius: 0 0 40px 40px; }
+        .hero h1 { margin: 0; font-size: 1.8rem; font-weight: 700; }
+        .search-container { max-width: 800px; margin: -40px auto 20px auto; padding: 0 20px; }
+        .search-card { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); text-align: center; }
+        .toggle-group { display: flex; justify-content: center; gap: 10px; margin-bottom: 25px; flex-wrap: wrap; }
+        .toggle-btn { background-color: #f0f2f5; color: #666; border: none; padding: 10px 24px; border-radius: 50px; cursor: pointer; transition: 0.3s; }
+        .toggle-btn.active { background-color: var(--active-blue); color: white; transform: translateY(-2px); }
+        .input-group { display: flex; gap: 10px; max-width: 600px; margin: 0 auto; }
+        .search-input { flex: 1; padding: 14px 25px; border-radius: 50px; border: 2px solid #eee; outline: none; }
+        .search-submit-btn { background: var(--active-blue); color: white; border: none; padding: 0 30px; border-radius: 50px; cursor: pointer; font-weight: bold; }
+        
+        #results-area { max-width: 800px; margin: 30px auto; padding: 0 20px; }
+        .product-card { background: white; border-radius: 16px; overflow: hidden; margin-bottom: 30px; box-shadow: 0 5px 20px rgba(0,0,0,0.05); }
+        .pc-header { background: #fafafa; padding: 15px 25px; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; }
+        .pc-body { padding: 25px; display: flex; gap: 25px; flex-wrap: wrap; }
+        .pc-img { width: 120px; height: 120px; object-fit: cover; border-radius: 12px; }
+        
+        .timeline-container { padding: 0 25px 30px 25px; }
+        .timeline-item { position: relative; padding-left: 30px; padding-bottom: 25px; border-left: 2px dashed #ddd; }
+        .timeline-item:last-child { border: none; }
+        .t-dot { position: absolute; left: -9px; top: 0; width: 16px; height: 16px; background: var(--primary); border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .t-date { font-size: 0.85rem; color: #888; margin-bottom: 4px; }
+        .t-action { font-weight: bold; color: #333; font-size: 1.1rem; }
+        .t-detail { background: #f9f9f9; padding: 10px; border-radius: 8px; margin-top: 8px; color: #555; }
+    </style>
+</head>
+<body>
+    <div class="hero">
+        <h1><i class="fas fa-leaf"></i> 產品履歷安心查</h1>
+        <p>新合約版本：請確保您查詢的是最新上鏈的資料</p>
+    </div>
+
+    <div class="search-container">
+        <div class="search-card">
+            <div class="toggle-group">
+                <button class="toggle-btn active" id="btn-company" onclick="setMode('company')"><i class="fas fa-building"></i> 依公司查詢</button>
+                <button class="toggle-btn" id="btn-name" onclick="setMode('name')"><i class="fas fa-carrot"></i> 依產品查詢</button>
+                <button class="toggle-btn" id="btn-id" onclick="setMode('id')"><i class="fas fa-barcode"></i> 依 ID 查詢</button>
+            </div>
+            <div class="input-group">
+                <input type="text" id="query-input" class="search-input" placeholder="請輸入公司名稱">
+                <button class="search-submit-btn" onclick="handleSearch()"><i class="fas fa-search"></i> 搜尋</button>
+            </div>
+            <div id="loading" style="display:none; margin-top:15px; color:#666;">正在區塊鏈上查找資料...</div>
+        </div>
+    </div>
+
+    <div id="results-area"></div>
+
+<script>
+    // 🔥 新合約地址
+    const contractAddress = "0x305255Adb4F3797F75F1e0a58fC622cF784Ea599";
+
+    const contractABI = [
+        { "inputs": [ { "internalType": "string", "name": "_companyName", "type": "string" } ], "name": "getProductsByCompany", "outputs": [ { "internalType": "string[]", "name": "", "type": "string[]" } ], "stateMutability": "view", "type": "function" },
+        { "inputs": [ { "internalType": "string", "name": "_productName", "type": "string" } ], "name": "getProductsByName", "outputs": [ { "internalType": "string[]", "name": "", "type": "string[]" } ], "stateMutability": "view", "type": "function" },
+        { "inputs": [ { "internalType": "string", "name": "_id", "type": "string" } ], "name": "getProduct", "outputs": [ { "internalType": "string", "name": "", "type": "string" }, { "internalType": "string", "name": "", "type": "string" }, { "internalType": "string", "name": "", "type": "string" }, { "internalType": "string", "name": "", "type": "string" }, { "internalType": "string", "name": "", "type": "string" } ], "stateMutability": "view", "type": "function" },
+        { "inputs": [ { "internalType": "string", "name": "_id", "type": "string" } ], "name": "getHistory", "outputs": [ { "components": [ { "internalType": "string", "name": "date", "type": "string" }, { "internalType": "string", "name": "transporter", "type": "string" }, { "internalType": "string", "name": "action", "type": "string" }, { "internalType": "string", "name": "note", "type": "string" }, { "internalType": "uint256", "name": "phi", "type": "uint256" }, { "internalType": "uint256", "name": "timestamp", "type": "uint256" } ], "internalType": "struct AgProductV4.Record[]", "name": "", "type": "tuple[]" } ], "stateMutability": "view", "type": "function" },
+        { "inputs": [ { "internalType": "string", "name": "_name", "type": "string" } ], "name": "getCompanyInfo", "outputs": [ { "internalType": "string", "name": "", "type": "string" }, { "internalType": "string", "name": "", "type": "string" }, { "internalType": "string", "name": "", "type": "string" }, { "internalType": "bool", "name": "", "type": "bool" } ], "stateMutability": "view", "type": "function" }
+    ];
+
+    // 使用幣安測試網節點
+    let web3 = new Web3("https://data-seed-prebsc-1-s1.binance.org:8545");
+    let contract = new web3.eth.Contract(contractABI, contractAddress);
+    let searchMode = 'company';
+
+    function setMode(mode) {
+        searchMode = mode;
+        document.querySelectorAll('.toggle-btn').forEach(btn => btn.classList.remove('active'));
+        if(mode === 'company') document.getElementById('btn-company').classList.add('active');
+        if(mode === 'name') document.getElementById('btn-name').classList.add('active');
+        if(mode === 'id') document.getElementById('btn-id').classList.add('active');
+        
+        const input = document.getElementById('query-input');
+        input.value = "";
+        document.getElementById('results-area').innerHTML = "";
+        
+        if(mode === 'company') input.placeholder = "請輸入公司名稱 (例如: 快樂農場)";
+        else if (mode === 'name') input.placeholder = "請輸入產品名稱 (例如: 高麗菜)";
+        else input.placeholder = "請輸入產品 ID (例如: P001)";
+    }
+
+    async function handleSearch() {
+        const query = document.getElementById('query-input').value.trim();
+        if(!query) return alert("請輸入內容！");
+        document.getElementById('loading').style.display = 'block';
+        document.getElementById('results-area').innerHTML = "";
+
+        try {
+            if (searchMode === 'company') {
+                const compInfo = await contract.methods.getCompanyInfo(query).call();
+                if(compInfo[3]) renderCompanyCard(query, compInfo);
+                const ids = await contract.methods.getProductsByCompany(query).call();
+                if(ids.length === 0) showNoData("此公司尚未註冊產品");
+                else for(let id of ids) await loadProductData(id);
+            } else if (searchMode === 'name') {
+                const ids = await contract.methods.getProductsByName(query).call();
+                if(ids.length === 0) showNoData(`找不到名稱為「${query}」的產品`);
+                else for(let id of ids) await loadProductData(id);
+            } else {
+                await loadProductData(query);
+            }
+        } catch (e) {
+            console.error(e);
+            showNoData("搜尋發生錯誤，請確認輸入是否正確");
+        }
+        document.getElementById('loading').style.display = 'none';
+    }
+
+    function showNoData(msg) {
+        document.getElementById('results-area').innerHTML = `<div style="text-align:center; padding:40px; color:#888;">${msg}</div>`;
+    }
+
+    function renderCompanyCard(name, info) {
+        const html = `
+            <div class="product-card" style="border-left: 5px solid #2e7d32;">
+                <div class="pc-body">
+                    <img src="${info[2]}" style="width:80px; height:80px; border-radius:50%; object-fit:cover;" onerror="this.src='https://via.placeholder.com/100?text=No+Img'">
+                    <div class="pc-info">
+                        <h2 style="color:#2e7d32;">${name}</h2>
+                        <p><i class="fas fa-phone"></i> ${info[0]}</p>
+                        <p>${info[1]}</p>
+                    </div>
+                </div>
+            </div>`;
+        document.getElementById('results-area').insertAdjacentHTML('beforeend', html);
+    }
+
+    async function loadProductData(id) {
+        try {
+            const p = await contract.methods.getProduct(id).call();
+            if(!p[0]) {
+                if(searchMode === 'id') showNoData("查無此 ID");
+                return;
+            }
+            const history = await contract.methods.getHistory(id).call();
+
+            // 生成時間軸 HTML
+            let timelineHtml = history.map(h => `
+                <div class="timeline-item">
+                    <div class="t-dot"></div>
+                    <div class="t-date">${h.date}</div>
+                    <div class="t-action">${h.action}</div>
+                    <div class="t-detail">
+                        ${h.transporter ? `<div><i class="fas fa-truck"></i> ${h.transporter}</div>` : ''}
+                        ${h.note ? `<div><i class="fas fa-sticky-note"></i> ${h.note}</div>` : ''}
+                        ${h.phi > 0 ? `<div style="color:#d32f2f;">☠️ 安全採收期: ${h.phi} 天</div>` : ''}
+                    </div>
+                </div>
+            `).reverse().join('');
+
+            if(history.length === 0) timelineHtml = "<div style='color:#999; padding-left:10px;'>尚未有生產紀錄</div>";
+
+            const cardHtml = `
+            <div class="product-card">
+                <div class="pc-header">
+                    <span>ID: ${p[0]}</span>
+                    <span style="color:#2e7d32;"><i class="fas fa-check-circle"></i> 認證通過</span>
+                </div>
+                <div class="pc-body">
+                    <img src="${p[4]}" class="pc-img" onerror="this.src='https://via.placeholder.com/150?text=No+Img'">
+                    <div class="pc-info">
+                        <h2>${p[1]}</h2>
+                        <p>🏢 出品公司: ${p[3]}</p>
+                        <p>📍 產地: ${p[2]}</p>
+                    </div>
+                </div>
+                <div class="timeline-container">
+                    ${timelineHtml}
+                </div>
+            </div>`;
+            document.getElementById('results-area').insertAdjacentHTML('beforeend', cardHtml);
+        } catch (err) { console.log("Error loading product:", id); }
+    }
+</script>
+</body>
+</html>
