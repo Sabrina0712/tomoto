@@ -79,7 +79,7 @@ if (window.ethereum) {
     web3 = new Web3(window.ethereum);
 } else {
     // 如果使用者沒裝錢包的備用方案 (請填入你真正部署合約的 RPC URL)
-    web3 = new Web3("https://data-seed-prebsc-1-s1.binance.org:8545"); 
+    web3 = new Web3("https://rpc.sepolia.org"); 
 }
 let contract = new web3.eth.Contract(contractABI, contractAddress);
     
@@ -196,3 +196,4 @@ let contract = new web3.eth.Contract(contractABI, contractAddress);
 </script>
 </body>
 </html>
+
