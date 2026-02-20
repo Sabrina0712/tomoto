@@ -74,13 +74,8 @@
 
     // 使用幣安測試網節點
     // 替換掉原本寫死的 BSC 節點
-let web3;
-if (window.ethereum) {
-    web3 = new Web3(window.ethereum);
-} else {
-    // 如果使用者沒裝錢包的備用方案 (請填入你真正部署合約的 RPC URL)
-    web3 = new Web3("https://rpc.sepolia.org"); 
-}
+// 直接指定連線到 Sepolia 測試網
+let web3 = new Web3("https://rpc.sepolia.org");
 let contract = new web3.eth.Contract(contractABI, contractAddress);
     
     let searchMode = 'company';
@@ -196,4 +191,5 @@ let contract = new web3.eth.Contract(contractABI, contractAddress);
 </script>
 </body>
 </html>
+
 
