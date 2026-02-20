@@ -103,9 +103,13 @@ let contract = new web3.eth.Contract(contractABI, contractAddress);
         document.getElementById('loading').style.display = 'block';
         document.getElementById('results-area').innerHTML = "";
 
+        console.log("🔍 開始搜尋:", query); // 加這行來追蹤
+
         try {
             if (searchMode === 'company') {
+                console.log("⏳ 準備呼叫 getCompanyInfo..."); // 加這行來追蹤
                 const compInfo = await contract.methods.getCompanyInfo(query).call();
+                console.log("✅ 成功取得公司資料:", compInfo); // 加這行來追蹤
                 if(compInfo[3]) renderCompanyCard(query, compInfo);
                 const ids = await contract.methods.getProductsByCompany(query).call();
                 if(ids.length === 0) showNoData("此公司尚未註冊產品");
@@ -192,6 +196,3 @@ let contract = new web3.eth.Contract(contractABI, contractAddress);
 </script>
 </body>
 </html>
-
-
-
